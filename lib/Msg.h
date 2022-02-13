@@ -27,13 +27,15 @@ struct NewCtlRspMsg {
 };
 
 struct NewTunnelReqMsg {
-  u_int32_t server_port;
+  u_int32_t local_server_port;
 };
 
 // 定长
 struct NewTunnelRspMsg {
   char tun_id[10];
-  u_int32_t server_port;
+  u_int32_t local_server_port;
+  u_int32_t proxy_server_port;
+  char proxy_server_addr[20];
 };
 
 // 服务端通知客户端发起创建proxy请求

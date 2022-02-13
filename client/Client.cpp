@@ -48,8 +48,10 @@ void Client::handleNewTunnelRsp(void *msg, SP_CtlConn conn) {
   NewTunnelRspMsg *new_tunnel_rsp_msg = (NewTunnelRspMsg *)msg;
   SP_Tunnel tun(new Tunnel{});
   tun->tun_id = std::string(new_tunnel_rsp_msg->tun_id);
-  std::cout << "client: " << tun->tun_id << std::endl;
-  tun->server_port = new_tunnel_rsp_msg->server_port;
+  tun->local_server_port = new_tunnel_rsp_msg->local_server_port;
+  tun->proxy_server_port = new_tunnel_rsp_msg->proxy_server_port;
+  tun->proxy_server_addr = new_tunnel_rsp_msg->proxy_server_addr;
+  printf("tunnel addr:%s:%d\n", tun->proxy_server_addr.c_str(), tun->proxy_server_port);
   tunnel_map_.emplace(tun->tun_id, tun);
 }
 

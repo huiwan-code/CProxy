@@ -10,7 +10,9 @@
 
 struct Tunnel {
   std::string tun_id;
-  u_int32_t server_port;
+  u_int32_t local_server_port;
+  u_int32_t proxy_server_port;
+  std::string proxy_server_addr;
   std::unordered_map<int, SP_ProxyConn> proxy_conn_map;
   std::mutex mutex;
 };

@@ -19,13 +19,15 @@ void Control::handleNewTunnelReq(void *msg, SP_CtlConn conn) {
   std::string rand_tun_id = rand_str(5);
   std::cout << rand_tun_id << std::endl;
   // 添加tunnel到control中
-  SP_Tunnel tun(new Tunnel(rand_tun_id, new_tunnel_req_msg->server_port, server_->publicListenThread_, server_->eventLoopThreadPool_, shared_from_this()));
+  SP_Tunnel tun(new Tunnel(rand_tun_id, server_->publicListenThread_, server_->eventLoopThreadPool_, shared_from_this()));
   upsertTunnel(rand_tun_id, tun);
 
   // 返回数据
   NewTunnelRspMsg rsp_msg;
-  rsp_msg.server_port = new_tunnel_req_msg->server_port;
+  rsp_msg.local_server_port = new_tunnel_req_msg->local_server_port;
+  rsp_msg.proxy_server_port = tun->getListenPort();
   strcpy(rsp_msg.tun_id, rand_tun_id.c_str());
+  strcpy(rsp_msg.proxy_server_addr, (tun->getListenAddr()).c_str());
   CtlMsg ctl_msg = make_ctl_msg(NewTunnelRsp, (char *)&rsp_msg, sizeof(NewTunnelRspMsg));
   conn_->send_msg(ctl_msg);
 };

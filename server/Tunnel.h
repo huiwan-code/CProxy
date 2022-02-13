@@ -3,6 +3,9 @@
 #include <memory>
 #include <unordered_map>
 #include <mutex>
+#include<sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "lib/Channel.h"
 #include "lib/EventLoopThread.h"
@@ -16,15 +19,19 @@ class Control;
 class Tunnel {
   public:
     typedef std::shared_ptr<Control> SP_Control;
-    Tunnel(std::string tun_id, u_int32_t inner_server_port, SP_EventLoopThread listenThread, SP_EventLoopThreadPool workThreadPool, SP_Control ctl)
+    Tunnel(std::string tun_id, SP_EventLoopThread listenThread, SP_EventLoopThreadPool workThreadPool, SP_Control ctl)
     : tun_id_(tun_id),
-      inner_server_port_(inner_server_port),
-      listen_fd_(socketBindListen(8777)),
+      listen_fd_(socketBindListen(0)),
       listen_thread_(listenThread),
       work_pool_(workThreadPool),
       ctl_(ctl),
       mutex_()
        {
+        struct sockaddr_in listenAddr;
+        socklen_t listenAddrLen;
+        getsockname(listen_fd_, (struct sockaddr *)&listenAddr, &listenAddrLen);
+        listen_port_ = ntohs(listenAddr.sin_port);
+        listen_addr_ = inet_ntoa(listenAddr.sin_addr);
         acceptor_ = SP_Channel(new Channel(listen_fd_));
         acceptor_->setEvents(EPOLLIN | EPOLLET | EPOLLRDHUP);
         acceptor_->setReadHandler(std::bind(&Tunnel::newPublicConnHandler, this));
@@ -33,11 +40,14 @@ class Tunnel {
     
     int getAndPopUndealPublicFd();
     void claimProxyConn(SP_ProxyConn);
+    int getListenPort() {return listen_port_;}
+    std::string getListenAddr() {return listen_addr_;}
   private:
     void newPublicConnHandler();
     std::string tun_id_;
-    u_int32_t inner_server_port_;
     int listen_fd_;
+    std::string listen_addr_;
+    int listen_port_;
     SP_EventLoopThread listen_thread_;
     SP_EventLoopThreadPool work_pool_;
     SP_Channel acceptor_;
