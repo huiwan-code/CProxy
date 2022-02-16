@@ -28,10 +28,11 @@ class Tunnel {
       mutex_()
        {
         struct sockaddr_in listenAddr;
-        socklen_t listenAddrLen;
+        socklen_t listenAddrLen = sizeof(listenAddr);
         getsockname(listen_fd_, (struct sockaddr *)&listenAddr, &listenAddrLen);
         listen_port_ = ntohs(listenAddr.sin_port);
         listen_addr_ = inet_ntoa(listenAddr.sin_addr);
+        printf("addr: %s:%d\n", listen_addr_.c_str(), listen_port_);
         acceptor_ = SP_Channel(new Channel(listen_fd_));
         acceptor_->setEvents(EPOLLIN | EPOLLET | EPOLLRDHUP);
         acceptor_->setReadHandler(std::bind(&Tunnel::newPublicConnHandler, this));
@@ -54,7 +55,6 @@ class Tunnel {
     SP_Control ctl_;
     std::mutex mutex_;
     std::unordered_map<int, SP_ProxyConn> proxy_conn_map_;
-    std::unordered_map<int, SP_PublicConn> public_conn_map_;
     std::vector<int> undeal_public_fds_;
 };
 

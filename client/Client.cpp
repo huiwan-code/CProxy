@@ -12,9 +12,13 @@
 #include "lib/ProxyConn.h"
 #include "lib/LocalConn.h"
 
-Client::Client(int workThreadNum) 
+Client::Client(int workThreadNum, char *proxy_server_host, u_int32_t proxy_server_port, char *local_server_host, u_int32_t local_server_port) 
 : loop_(new EventLoop()),
-eventLoopThreadPool_(new EventLoopThreadPool(workThreadNum)){
+eventLoopThreadPool_(new EventLoopThreadPool(workThreadNum)),
+proxy_server_host_(proxy_server_host),
+proxy_server_port_(proxy_server_port),
+local_server_host_(local_server_host),
+local_server_port_(local_server_port) {
   ignoreSigpipe();
 }
 
@@ -26,7 +30,7 @@ void Client::start() {
 }
 
 void Client::initCtlConn() {
-  int conn_fd = tcp_connect("127.0.0.1", 8080);
+  int conn_fd = tcp_connect(proxy_server_host_, proxy_server_port_);
   assert(conn_fd > 0);
   SP_CtlConn conn(new CtlConn(conn_fd, loop_));
   ctl_conn_ = conn;
@@ -65,7 +69,7 @@ void Client::reqNewCtl() {
 
 // 新建应用隧道
 void Client::reqNewTunnel() {
-  NewTunnelReqMsg req_msg = NewTunnelReqMsg{7777};
+  NewTunnelReqMsg req_msg = NewTunnelReqMsg{local_server_port_};
   CtlMsg msg = make_ctl_msg(NewTunnelReq, (char *)(&req_msg), sizeof(req_msg));
   ctl_conn_->send_msg(msg);
 }
@@ -82,7 +86,7 @@ void Client::handleProxyNotify(void *msg, SP_CtlConn conn) {
 
   SP_Tunnel tun = tunnel_map_[tun_id];
   // 连接本地服务
-  int local_conn_fd = tcp_connect("127.0.0.1", tun->server_port);
+  int local_conn_fd = tcp_connect(local_server_host_, local_server_port_);
   if (local_conn_fd <= 0) {
     printf("connect local server error\n");
     return;
@@ -93,7 +97,7 @@ void Client::handleProxyNotify(void *msg, SP_CtlConn conn) {
   threadPicked->addConn(localConn);
 
   // 连接服务端代理端口
-  int proxy_conn_fd = tcp_connect("127.0.0.1", req_msg->server_proxy_port);
+  int proxy_conn_fd = tcp_connect(proxy_server_host_, req_msg->server_proxy_port);
   printf("client connect proxy ret fd: %d; port: %d\n", proxy_conn_fd, req_msg->server_proxy_port);
   if (proxy_conn_fd <= 0) {
     printf("connect proxy port error\n");

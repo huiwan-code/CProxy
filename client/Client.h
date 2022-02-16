@@ -21,7 +21,7 @@ using SP_Tunnel = std::shared_ptr<Tunnel>;
 
 class Client : public std::enable_shared_from_this<Client> {
   public:
-    Client(int workThreadNum);
+    Client(int workThreadNum, char *proxy_server_host, u_int32_t proxy_server_port, char *local_server_host, u_int32_t local_server_port);
     void start();
   private:
     void initCtlConn();
@@ -33,6 +33,10 @@ class Client : public std::enable_shared_from_this<Client> {
     void handleProxyNotify(void*, SP_CtlConn);
     int ctl_conn_fd_;
     std::string client_id_;
+    char *proxy_server_host_;
+    u_int32_t proxy_server_port_;
+    char *local_server_host_;
+    u_int32_t local_server_port_;
     std::unordered_map<std::string, SP_Tunnel> tunnel_map_;
     SP_EventLoop loop_;
     SP_EventLoopThreadPool eventLoopThreadPool_;
