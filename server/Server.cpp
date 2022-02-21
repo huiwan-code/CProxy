@@ -10,7 +10,6 @@
 #include "lib/Util.h"
 #include "lib/EventLoopThreadPool.h"
 #include "lib/EventLoopThread.h"
-#include "lib/PublicConn.h"
 #include "lib/CtlConn.h"
 #include "lib/Msg.h"
 #include "lib/ProxyConn.h"
@@ -85,7 +84,7 @@ try {
   socklen_t client_addr_len = sizeof(client_addr);
   int accept_fd = 0;
   while((accept_fd = accept(ctlListenFd_, (struct sockaddr *)&client_addr, &client_addr_len)) > 0) {
-    printf("accept_fd: %d; from:%s; port:%d", accept_fd, inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
+    printf("ctl_accept_fd: %d; from:%s; port:%d", accept_fd, inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
     // 选定一个未使用的ctl_id
     std::string ctl_id = rand_str(5);
     while(control_map_.find(ctl_id) != control_map_.end()) {
@@ -136,17 +135,18 @@ void Server::claimProxyConn(void *msg, SP_ProxyConn conn) {
   ProxyMetaSetMsg *proxy_meta_set_msg = (ProxyMetaSetMsg *)msg;
   std::string ctl_id = std::string(proxy_meta_set_msg->ctl_id);
   std::string tun_id = std::string(proxy_meta_set_msg->tun_id);
+  std::string proxy_id = std::string(proxy_meta_set_msg->proxy_id);
+  conn->setProxyID(proxy_id);
   if (control_map_.find(ctl_id) == control_map_.end()) {
     printf("control %s is not exist\n", ctl_id.c_str());
     return;
   }
   SP_Control ctl = control_map_[ctl_id];
-
-  if ((ctl->tunnel_map_).find(tun_id) == (ctl->tunnel_map_).end()) {
+  if (!(ctl->tunnel_map_).isExist(tun_id)) {
     printf("tun %s is not exist in ctl %s\n", tun_id.c_str(), ctl_id.c_str());
     return;
   }
-  SP_Tunnel tun = (ctl->tunnel_map_)[tun_id];
+  SP_Tunnel tun = (ctl->tunnel_map_).get(tun_id);
   tun->claimProxyConn(conn);
   // proxyConn已被认领，需从unclaimedProxyMaps中去掉
   int proxy_conn_fd = conn->getFd();

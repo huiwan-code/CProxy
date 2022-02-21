@@ -9,8 +9,6 @@ set(lib
     Msg.cpp
     CtlConn.cpp
     ProxyConn.cpp
-    PublicConn.cpp
-    LocalConn.cpp
 )
 
 add_library(lib ${lib})

@@ -27,7 +27,8 @@ void Control::handleNewTunnelReq(void *msg, SP_CtlConn conn) {
   rsp_msg.local_server_port = new_tunnel_req_msg->local_server_port;
   rsp_msg.proxy_server_port = tun->getListenPort();
   strcpy(rsp_msg.tun_id, rand_tun_id.c_str());
-  strcpy(rsp_msg.proxy_server_addr, (tun->getListenAddr()).c_str());
+  strcpy(rsp_msg.proxy_server_host, (tun->getListenAddr()).c_str());
+  strcpy(rsp_msg.local_server_host, new_tunnel_req_msg->local_server_host);
   CtlMsg ctl_msg = make_ctl_msg(NewTunnelRsp, (char *)&rsp_msg, sizeof(NewTunnelRspMsg));
   conn_->send_msg(ctl_msg);
 };
@@ -40,6 +41,41 @@ void Control::notifyClientNeedProxy(std::string tun_id) {
   conn_->send_msg(ctl_msg);
 }
 
+void Control::shutdownFromPublic(std::string tun_id, std::string proxy_id) {
+  NotifyProxyShutdownPeerConnMsg req_msg;
+  strcpy(req_msg.tun_id, tun_id.c_str());
+  strcpy(req_msg.proxy_id, proxy_id.c_str());
+  CtlMsg ctl_msg = make_ctl_msg(NotifyProxyShutdownPeerConn, (char *)&req_msg, sizeof(NotifyProxyShutdownPeerConnMsg));
+  conn_->send_msg(ctl_msg);
+};
+
+void Control::handleShutdownPublicConn(void* msg, SP_CtlConn conn) {
+  printf("handleShutdownPublicConn\n");
+  NotifyProxyShutdownPeerConnMsg *req_msg = (NotifyProxyShutdownPeerConnMsg *)msg;
+  std::string tun_id = req_msg->tun_id;
+  std::string proxy_id = req_msg->proxy_id;
+  bool tunIsExist;
+  SP_Tunnel tun = tunnel_map_.get(tun_id, tunIsExist);
+  if (!tunIsExist) {
+    printf("[handleShutdownPublicConn]tun %s not exist\n", tun_id.c_str());
+    return;
+  }
+  tun->shutdownPublicConn(proxy_id);
+};
+
 void Control::handleCtlConnClose(SP_CtlConn conn) {
   server_->control_map_.erase(ctl_id_);
+};
+
+void Control::handleFreeProxyConnReq(void* msg, SP_CtlConn conn) {
+  FreeProxyConnReqMsg *req_msg = (FreeProxyConnReqMsg*)msg;
+  std::string tun_id = std::string(req_msg->tun_id);
+  std::string proxy_id = std::string(req_msg->proxy_id);
+  bool tunIsExist;
+  SP_Tunnel tun = tunnel_map_.get(tun_id, tunIsExist);
+  if (!tunIsExist) {
+    printf("[handleFreeProxyConnReq]tun %s not exist\n", tun_id.c_str());
+    return;
+  }
+  tun->freeProxyConn(proxy_id);
 };

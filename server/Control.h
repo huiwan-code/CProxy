@@ -20,24 +20,28 @@ class Control: public std::enable_shared_from_this<Control> {
       conn_->setNewCtlReqHandler(std::bind(&Control::handleNewCtlReq, this, std::placeholders::_1, std::placeholders::_2));
       conn_->setNewTunnelReqHandler(std::bind(&Control::handleNewTunnelReq, this, std::placeholders::_1, std::placeholders::_2));
       conn_->setCloseHandler_(std::bind(&Control::handleCtlConnClose, this, std::placeholders::_1));
-
+      conn_->setNotifyProxyShutdownPeerConnHandler_(std::bind(&Control::handleShutdownPublicConn, this, std::placeholders::_1, std::placeholders::_2));
+      conn_->setFreeProxyConnReqHandler_(std::bind(&Control::handleFreeProxyConnReq, this, std::placeholders::_1, std::placeholders::_2));
       loop_->addToPoller(conn_->getChannel());
     };
     void upsertTunnel(std::string tun_id, SP_Tunnel tun) {
-      tunnel_map_[tun_id] = tun;
+      tunnel_map_.add(tun_id, tun);
     };
     SP_CtlConn getCtlConn() {return conn_;}
     void notifyClientNeedProxy(std::string tun_id);
+    void shutdownFromPublic(std::string tun_id, std::string proxy_id);
   private:
     int ctl_conn_fd_;
     SP_CtlConn conn_;
     std::string ctl_id_;
     SP_EventLoop loop_;
     Server* server_;
-    std::unordered_map<std::string, SP_Tunnel> tunnel_map_;
+    safe_unordered_map<std::string, SP_Tunnel> tunnel_map_;
     void handleNewCtlReq(void*, SP_CtlConn);
     void handleNewTunnelReq(void*, SP_CtlConn);
     void handleCtlConnClose(SP_CtlConn conn);
+    void handleShutdownPublicConn(void*, SP_CtlConn);
+    void handleFreeProxyConnReq(void*, SP_CtlConn);
   friend class Server;
 };
 

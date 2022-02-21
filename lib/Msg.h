@@ -10,7 +10,9 @@ enum CtlMsgType {
   NewCtlRsp,
   NewTunnelReq,
   NewTunnelRsp,
-  NotifyClientNeedProxy
+  NotifyClientNeedProxy,
+  NotifyProxyShutdownPeerConn,
+  FreeProxyConnReq
 };
 
 struct CtlMsg {
@@ -27,6 +29,7 @@ struct NewCtlRspMsg {
 };
 
 struct NewTunnelReqMsg {
+  char local_server_host[20];
   u_int32_t local_server_port;
 };
 
@@ -35,13 +38,24 @@ struct NewTunnelRspMsg {
   char tun_id[10];
   u_int32_t local_server_port;
   u_int32_t proxy_server_port;
-  char proxy_server_addr[20];
+  char proxy_server_host[20];
+  char local_server_host[20];
 };
 
 // 服务端通知客户端发起创建proxy请求
 struct NotifyClientNeedProxyMsg {
   char tun_id[10];
   u_int32_t server_proxy_port;
+};
+
+struct NotifyProxyShutdownPeerConnMsg {
+  char tun_id[10];
+  char proxy_id[10];
+};
+
+struct FreeProxyConnReqMsg {
+  char tun_id[10];
+  char proxy_id[10];
 };
 
 CtlMsg make_ctl_msg(CtlMsgType type, char *data, size_t data_len);

@@ -9,7 +9,7 @@
 #include <errno.h>
 #include <netdb.h>
 #include <random>
-
+#include <ctime>
 int socketBindListen(int port) {
   if (port < 0 || port > 65535) {
     return -1;
@@ -153,4 +153,9 @@ std::string rand_str(int len) {
       buffer += tmp;
   }
     return buffer;
+};
+
+char* getNowTime() {
+  std::time_t result = std::time(NULL);
+  return std::asctime(std::localtime(&result));
 };

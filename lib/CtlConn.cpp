@@ -74,6 +74,18 @@ try{
         notifyClientNeedProxyHandler_((void*)&req_msg, shared_from_this());
         break;
       }
+    case NotifyProxyShutdownPeerConn:
+      {
+        NotifyProxyShutdownPeerConnMsg req_msg;
+        memcpy(&req_msg, msg.data, get_ctl_msg_body_size(msg));
+        notifyProxyShutdownPeerConnHandler_((void*)&req_msg, shared_from_this());
+      }
+    case FreeProxyConnReq:
+      {
+        FreeProxyConnReqMsg req_msg;
+        memcpy(&req_msg, msg.data, get_ctl_msg_body_size(msg));
+        freeProxyConnReqHandler_((void*)&req_msg, shared_from_this());
+      }
   }
 }
 catch (const std::exception& e) {
@@ -110,7 +122,9 @@ void CtlConn::postHandle() {
   loop_->updatePoller(channel_);
 };
 
+// 线程安全
 void CtlConn::send_msg(CtlMsg& msg) {
+  std::unique_lock<std::mutex> lock(mutex_);
   u_int32_t msg_len = msg.len;
   msg.len = htonl(msg.len);
 

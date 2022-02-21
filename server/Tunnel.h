@@ -10,7 +10,7 @@
 #include "lib/Channel.h"
 #include "lib/EventLoopThread.h"
 #include "lib/EventLoopThreadPool.h"
-#include "lib/PublicConn.h"
+#include "PublicConn.h"
 #include "lib/Util.h"
 #include "lib/ProxyConn.h"
 
@@ -25,7 +25,8 @@ class Tunnel {
       listen_thread_(listenThread),
       work_pool_(workThreadPool),
       ctl_(ctl),
-      mutex_()
+      public_fds_mutex_(),
+      free_proxy_conns_mutex_()
        {
         struct sockaddr_in listenAddr;
         socklen_t listenAddrLen = sizeof(listenAddr);
@@ -43,8 +44,17 @@ class Tunnel {
     void claimProxyConn(SP_ProxyConn);
     int getListenPort() {return listen_port_;}
     std::string getListenAddr() {return listen_addr_;}
+    void shutdownFromPublic(std::string proxy_id);
+    SP_ProxyConn popFreeProxyConn(bool&);
+    void reqStartProxy(int public_fd, SP_ProxyConn proxy_conn);
+    void bindPublicFdToProxyConn(int public_fd, SP_ProxyConn proxy_conn);
+    void freeProxyConn(std::string);
+    void shutdownPublicConn(std::string proxy_id);
   private:
     void newPublicConnHandler();
+    void addCtlPendingFunctor(voidFunctor&&);
+    void handleStartProxyConnRsp(void*, SP_ProxyConn);
+    void handlePeerProxyConnClose(SP_ProxyConn);
     std::string tun_id_;
     int listen_fd_;
     std::string listen_addr_;
@@ -53,8 +63,12 @@ class Tunnel {
     SP_EventLoopThreadPool work_pool_;
     SP_Channel acceptor_;
     SP_Control ctl_;
-    std::mutex mutex_;
-    std::unordered_map<int, SP_ProxyConn> proxy_conn_map_;
+    std::mutex public_fds_mutex_;
+    std::mutex free_proxy_conns_mutex_;
+    // std::unordered_map<std::string, SP_ProxyConn> proxy_conn_map_;
+    safe_unordered_map<std::string, SP_ProxyConn> proxy_conn_map_;
+    safe_unordered_map<std::string, SP_ProxyConn> wait_for_start_proxy_conn_map_;
+    std::vector<SP_ProxyConn> free_proxy_conns_;
     std::vector<int> undeal_public_fds_;
 };
 

@@ -8,7 +8,6 @@ class Conn : public ChannelOwner {
   public:
     Conn(int fd, SP_EventLoop loop) : fd_(fd), loop_(loop), channel_(new Channel(fd)) {};
     ~Conn() {
-      printf("conn killing");
       loop_->removeFromPoller(channel_);
     }
     SP_Channel getChannel(){return channel_;}
