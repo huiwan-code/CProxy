@@ -1,8 +1,12 @@
 #pragma once
 #include <string>
+#include <memory>
 #include <mutex>
 #include <sys/types.h>
 #include <unordered_map>
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+
 int socketBindListen(int port);
 // 忽略掉sigpipe，避免由此异常导致程序退出
 void ignoreSigpipe();
@@ -62,5 +66,3 @@ struct safe_unordered_map {
     return map.empty();
   }
 };
-
-char* getNowTime();

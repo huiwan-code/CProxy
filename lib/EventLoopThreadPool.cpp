@@ -10,8 +10,12 @@ void EventLoopThreadPool::start() {
 }
 
 SP_EventLoopThread EventLoopThreadPool::pickRandThread() {
-  SP_EventLoopThread t = threads_[nextWorkThreadIdx_];
-  nextWorkThreadIdx_ = (nextWorkThreadIdx_ + 1) % numThreads_;
+  SP_EventLoopThread t;
+  {
+    std::unique_lock<std::mutex> lock(thread_mutex_);
+    t = threads_[nextWorkThreadIdx_];
+    nextWorkThreadIdx_ = (nextWorkThreadIdx_ + 1) % numThreads_;
+  }
   return t;
 }
 

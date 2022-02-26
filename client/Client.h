@@ -19,7 +19,8 @@ class Client : public std::enable_shared_from_this<Client> {
     std::string local_server_host;
     u_int32_t local_server_port;
     std::string client_id;
-    void shutdownFromLocal(std::string tun_id, std::string proxy_id);
+    void shutdownFromLocal(std::string tun_id, std::string proxy_id, u_int32_t tran_count);
+    SP_CtlConn getCtlConn(){return ctl_conn_;}
   private:
     void initCtlConn();
     void reqNewCtl();

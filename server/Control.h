@@ -29,7 +29,7 @@ class Control: public std::enable_shared_from_this<Control> {
     };
     SP_CtlConn getCtlConn() {return conn_;}
     void notifyClientNeedProxy(std::string tun_id);
-    void shutdownFromPublic(std::string tun_id, std::string proxy_id);
+    void shutdownFromPublic(std::string tun_id, std::string proxy_id, u_int32_t tran_count);
   private:
     int ctl_conn_fd_;
     SP_CtlConn conn_;

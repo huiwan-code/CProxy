@@ -84,7 +84,7 @@ try {
   socklen_t client_addr_len = sizeof(client_addr);
   int accept_fd = 0;
   while((accept_fd = accept(ctlListenFd_, (struct sockaddr *)&client_addr, &client_addr_len)) > 0) {
-    printf("ctl_accept_fd: %d; from:%s; port:%d", accept_fd, inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
+    SPDLOG_INFO("ctl_accept_fd: {}; from:{}; port:{}", accept_fd, inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
     // 选定一个未使用的ctl_id
     std::string ctl_id = rand_str(5);
     while(control_map_.find(ctl_id) != control_map_.end()) {
@@ -107,12 +107,12 @@ try{
   memset(&client_addr, 0, client_addr_len);
   int accept_fd = 0;
   while((accept_fd = accept(proxyListenFd_, (struct sockaddr *)&client_addr, &client_addr_len)) > 0 ) {
-    printf("proxy_accept_fd: %d; from:%s; port:%d\n", accept_fd, inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
+    SPDLOG_INFO("proxy_accept_fd: {}; from:{}; port:{}", accept_fd, inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
     // 封装ProxyConn,并选择一个工作线程处理
     SP_EventLoopThread threadPicked = eventLoopThreadPool_->pickRandThread();
-    SP_ProxyConn proxyConn(new ProxyConn(accept_fd, threadPicked->getLoop()));
+    SP_ProxyConn proxyConn(new ProxyConn(accept_fd, threadPicked));
     proxyConn->setProxyMetaSetHandler(std::bind(&Server::claimProxyConn, this, std::placeholders::_1, std::placeholders::_2));
-
+    
     // 选择一个未认领proxy的map
     UnclaimedProxyMap *unclaimedProxyMap = getUnclaimedProxyMapByFd(accept_fd);
     {
@@ -138,12 +138,12 @@ void Server::claimProxyConn(void *msg, SP_ProxyConn conn) {
   std::string proxy_id = std::string(proxy_meta_set_msg->proxy_id);
   conn->setProxyID(proxy_id);
   if (control_map_.find(ctl_id) == control_map_.end()) {
-    printf("control %s is not exist\n", ctl_id.c_str());
+    SPDLOG_CRITICAL("control {} is not exist", ctl_id);
     return;
   }
   SP_Control ctl = control_map_[ctl_id];
   if (!(ctl->tunnel_map_).isExist(tun_id)) {
-    printf("tun %s is not exist in ctl %s\n", tun_id.c_str(), ctl_id.c_str());
+    SPDLOG_CRITICAL("tun {} is not exist in ctl {}", tun_id, ctl_id);
     return;
   }
   SP_Tunnel tun = (ctl->tunnel_map_).get(tun_id);

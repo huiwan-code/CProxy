@@ -7,6 +7,7 @@
 #include "Msg.h"
 #include "Buffer.h"
 #include "Util.h"
+#include "spdlog/spdlog.h"
 
 void CtlConn::handleRead() 
 try{
@@ -16,25 +17,32 @@ try{
   char *buffer_ptr = (char *)&msg;
   // 读消息体长度
   size_t readNum = readn(fd_, buffer_ptr, sizeof(u_int32_t), inBufferEmpty_);
+  if (readNum == 0 && inBufferEmpty_) {
+    return;
+  }
   if (readNum != sizeof(u_int32_t)) {
-    printf("read msg len err");
+    SPDLOG_CRITICAL("read msg len err");
     return;
   }
   buffer_ptr += readNum;
   msg.len = ntohl(msg.len);
   // buffer 是否能存放数据
   if (msg.len > max_msg_len) {
-    printf("msg len too long");
+    SPDLOG_CRITICAL("msg len too long: %d", msg.len);
     return;
   }
   // 读取消息体
   size_t body_len = msg.len - sizeof(msg.len);
   readNum = readn(fd_, buffer_ptr, body_len, inBufferEmpty_);
+  if (readNum == 0 && inBufferEmpty_) {
+    return;
+  }
   if (readNum != body_len) {
-    printf("read msg body err");
+    SPDLOG_CRITICAL("read msg body err readNum: %d; body_len: %d", readNum, body_len);
     return;
   }
 
+  SPDLOG_INFO("ctl recv type: {}", msg.type);
   switch(msg.type) {
     case NewCtlReq:
       {
@@ -79,17 +87,19 @@ try{
         NotifyProxyShutdownPeerConnMsg req_msg;
         memcpy(&req_msg, msg.data, get_ctl_msg_body_size(msg));
         notifyProxyShutdownPeerConnHandler_((void*)&req_msg, shared_from_this());
+        break;
       }
     case FreeProxyConnReq:
       {
         FreeProxyConnReqMsg req_msg;
         memcpy(&req_msg, msg.data, get_ctl_msg_body_size(msg));
         freeProxyConnReqHandler_((void*)&req_msg, shared_from_this());
+        break;
       }
   }
 }
 catch (const std::exception& e) {
-  std::cout << e.what() << std::endl;
+  std::cout << "read ctl_conn except: "<< e.what() << std::endl;
   abort();
 }
 
@@ -99,7 +109,7 @@ void CtlConn::handleWrite() {
   }
   size_t sent_num = out_buffer_->write_to_sock(fd_);
   if (sent_num <= 0) {
-    printf("sent to fd err");
+    SPDLOG_CRITICAL("sent to fd err");
   }
 
   if (out_buffer_->get_unread_size() > 0) {
@@ -130,7 +140,7 @@ void CtlConn::send_msg(CtlMsg& msg) {
 
   size_t writeNum = out_buffer_->write_to_buffer((char *)&msg, msg_len);
   if (writeNum != msg_len) {
-    printf("send msg err");
+    SPDLOG_CRITICAL("send msg err");
     return;
   }
   channel_->addEvents(EPOLLOUT);

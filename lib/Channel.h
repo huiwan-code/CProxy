@@ -10,7 +10,6 @@ class Channel {
     typedef std::function<void()> EventHandler;
     Channel(int fd): fd_(fd) {};
     ~Channel(){
-      printf("channel is deading\n");
       close(fd_);}
     void setFd(int fd) {fd_=fd;};
     int getFd() {return fd_;};

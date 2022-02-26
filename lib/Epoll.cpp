@@ -4,6 +4,7 @@
 
 #include "Epoll.h"
 #include "Channel.h"
+#include "spdlog/spdlog.h"
 
 const int EPOLLWAIT_TIME = 10000;
 const int EVENTSNUM = 4096;
@@ -18,7 +19,7 @@ void Epoll::epoll_add(SP_Channel channel) {
   event.data.fd = fd;
   event.events = channel->getEvents();
   if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, fd, &event) < 0) {
-    perror("epoll_add error");
+    SPDLOG_CRITICAL("epoll_ctl fd: {} err: {}", fd, strerror(errno));
   } else {
       fd2chan_[fd] = channel;
   }

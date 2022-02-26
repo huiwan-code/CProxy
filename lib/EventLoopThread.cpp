@@ -26,7 +26,8 @@ try{
   loop_->loop();
 }
 catch(std::exception& e) {
-  std::cout << e.what() << std::endl;
+  SPDLOG_CRITICAL("EventLoopThread::threadFunc exception: {}", e.what());
+  abort();
 }
 
 void EventLoopThread::startLoop() {

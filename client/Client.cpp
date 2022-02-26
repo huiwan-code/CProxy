@@ -3,6 +3,8 @@
 #include <functional>
 #include <iostream>
 #include <string.h>
+#include <netinet/in.h>
+
 #include "Client.h"
 #include "lib/Util.h"
 #include "lib/EventLoop.h"
@@ -12,7 +14,7 @@
 #include "lib/ProxyConn.h"
 #include "Tunnel.h"
 #include "LocalConn.h"
-
+#include "spdlog/spdlog.h"
 
 Client::Client(int workThreadNum, std::string proxy_server_host, u_int32_t proxy_server_port, std::string local_server_host, u_int32_t local_server_port) 
 : loop_(new EventLoop()),
@@ -59,7 +61,7 @@ void Client::handleNewTunnelRsp(void *msg, SP_CtlConn conn) {
   std::string proxy_server_host = std::string(rsp_msg->proxy_server_host);
   SP_Tunnel tun(new Tunnel{tun_id, local_server_host, rsp_msg->local_server_port, 
   proxy_server_host, rsp_msg->proxy_server_port, this, eventLoopThreadPool_});
-  printf("tunnel addr:%s:%d\n", rsp_msg->proxy_server_host, rsp_msg->proxy_server_port);
+  SPDLOG_INFO("tunnel addr:{}:{}", rsp_msg->proxy_server_host, rsp_msg->proxy_server_port);
   tunnel_map_.emplace(rsp_msg->tun_id, tun);
 }
 
@@ -86,7 +88,7 @@ void Client::handleProxyNotify(void *msg, SP_CtlConn conn) {
   std::string tun_id = req_msg->tun_id;
   // 检查tun_id是否存在
   if (tunnel_map_.find(tun_id) == tunnel_map_.end()) {
-    printf("tun_id %s not exist\n", tun_id.c_str());
+    SPDLOG_CRITICAL("tun_id {} not exist", tun_id);
     return;
   }
 
@@ -96,10 +98,7 @@ void Client::handleProxyNotify(void *msg, SP_CtlConn conn) {
   (tun->proxy_conn_map).add(proxyConn->getProxyID(), proxyConn);
 
   // 创建LocalConn
-  SP_LocalConn localConn = tun->createLocalConn(proxyConn->getProxyID());
-
-  // proxy设置为开始
-  proxyConn->start(localConn);
+  SP_LocalConn localConn = tun->createLocalConn(proxyConn, 1);
 
   // 发送给服务端告知这个代理链接一些元信息
   ProxyMetaSetMsg meta_set_req_msg = ProxyMetaSetMsg{};
@@ -107,7 +106,13 @@ void Client::handleProxyNotify(void *msg, SP_CtlConn conn) {
   strcpy(meta_set_req_msg.tun_id, tun_id.c_str());
   strcpy(meta_set_req_msg.proxy_id, (proxyConn->getProxyID()).c_str());
   ProxyCtlMsg proxy_ctl_msg = make_proxy_ctl_msg(ProxyMetaSet, (char *)&meta_set_req_msg, sizeof(meta_set_req_msg));
-  proxyConn->send_msg(proxy_ctl_msg);
+  if ((proxyConn->send_msg_dirct(proxy_ctl_msg)) == -1) {
+    SPDLOG_CRITICAL("proxyConn {} send ProxyMetaSetMsg failed", proxyConn->getProxyID());
+    return;
+  };
+
+  // 将proxyConn设置为start, 需在send_msg_dirct之后，避免localConn先发送数据到Server端
+  proxyConn->start(localConn);
 }
 
 // 处理关闭localConn
@@ -115,32 +120,27 @@ void Client::handleShutdownLocalConn(void *msg, SP_CtlConn conn) {
   NotifyProxyShutdownPeerConnMsg *req_msg = (NotifyProxyShutdownPeerConnMsg *)msg;
   std::string tun_id = req_msg->tun_id;
   std::string proxy_id = req_msg->proxy_id;
+  u_int32_t theoreticalTotalRecvCount = ntohl(req_msg->tran_count);
   // 检查tun_id是否存在
   if (tunnel_map_.find(tun_id) == tunnel_map_.end()) {
-    printf("tun_id %s not exist\n", tun_id.c_str());
+    SPDLOG_CRITICAL("tun_id {} not exist", tun_id);
     return;
   }
   SP_Tunnel tun = tunnel_map_[tun_id];
   bool isProxyExist;
   SP_ProxyConn proxyConn = (tun->proxy_conn_map).get(proxy_id, isProxyExist);
   if (!isProxyExist) {
-    printf("[handleShutdownLocalConn] proxy_id: %s not exist\n", proxy_id.c_str());
+    SPDLOG_CRITICAL("proxy_id: {} not exist", proxy_id);
     return;
   }
-  bool isFree = proxyConn->shutdownFromRemote();
-  // 如果本端代理连接已经空闲，需要通知将此代理释放到空闲列表中
-  if (isFree) {
-    FreeProxyConnReqMsg req_msg;
-    strcpy(req_msg.tun_id, tun_id.c_str());
-    strcpy(req_msg.proxy_id, proxy_id.c_str());
-    CtlMsg ctl_msg = make_ctl_msg(FreeProxyConnReq, (char *)&req_msg, sizeof(FreeProxyConnReqMsg));
-    ctl_conn_->send_msg(ctl_msg);
-  }
-  printf("[%s][handleShutdownLocalConn] proxy_id: %s, isFree: %d\n", getNowTime(),proxy_id.c_str(), isFree);
+  SPDLOG_INFO("handleShutdownLocalConn proxy_id {} local_fd {}", proxy_id, proxyConn->getPeerConnFd());
+  proxyConn->incrTheoreticalTotalRecvCount(theoreticalTotalRecvCount);
+  tun->shutdonwLocalConn(proxyConn);
 };
 
-void Client::shutdownFromLocal(std::string tun_id, std::string proxy_id) {
+void Client::shutdownFromLocal(std::string tun_id, std::string proxy_id, u_int32_t tran_count) {
   NotifyProxyShutdownPeerConnMsg req_msg;
+  req_msg.tran_count = htonl(tran_count);
   strcpy(req_msg.tun_id, tun_id.c_str());
   strcpy(req_msg.proxy_id, proxy_id.c_str());
   CtlMsg ctl_msg = make_ctl_msg(NotifyProxyShutdownPeerConn, (char *)&req_msg, sizeof(NotifyProxyShutdownPeerConnMsg));

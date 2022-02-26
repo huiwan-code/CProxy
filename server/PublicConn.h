@@ -4,12 +4,12 @@
 #include "lib/Channel.h"
 #include "lib/EventLoop.h"
 #include "lib/TranConn.h"
-
+#include "lib/EventLoopThread.h"
 class Tunnel;
 class PublicConn : public TranConn, public std::enable_shared_from_this<PublicConn>  {
   public:
-    PublicConn(int fd, SP_EventLoop loop, Tunnel* tun, std::string proxy_id) 
-    : TranConn(fd, loop),
+    PublicConn(int fd, SP_EventLoopThread thread, Tunnel* tun, std::string proxy_id) 
+    : TranConn(fd, thread),
       tun_(tun),
       proxy_id_(proxy_id),
       closing_(false) {

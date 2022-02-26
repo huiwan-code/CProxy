@@ -5,7 +5,7 @@
 #include <exception>
 
 #include "Buffer.h"
-
+#include "spdlog/spdlog.h"
 const int DOUBLE_BORDER_LINE = 1024;
 
 void Buffer::ensure_insert(int insert_len) {
@@ -111,7 +111,7 @@ try{
   return expect_len;
 }
 catch (std::exception& e) {
-  printf(e.what());
+  SPDLOG_CRITICAL("write to buffer except: {}", e.what());
   return 0;
 }
 

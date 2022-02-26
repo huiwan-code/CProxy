@@ -51,6 +51,7 @@ struct NotifyClientNeedProxyMsg {
 struct NotifyProxyShutdownPeerConnMsg {
   char tun_id[10];
   char proxy_id[10];
+  u_int32_t tran_count;
 };
 
 struct FreeProxyConnReqMsg {

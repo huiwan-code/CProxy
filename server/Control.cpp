@@ -2,6 +2,7 @@
 #include "Control.h"
 #include "lib/Util.h"
 #include "Server.h"
+#include "spdlog/spdlog.h"
 
 void Control::handleNewCtlReq(void* new_ctl_req_msg, SP_CtlConn conn) {
   std::string ctl_id_str = conn->get_ctl_id();
@@ -41,8 +42,9 @@ void Control::notifyClientNeedProxy(std::string tun_id) {
   conn_->send_msg(ctl_msg);
 }
 
-void Control::shutdownFromPublic(std::string tun_id, std::string proxy_id) {
+void Control::shutdownFromPublic(std::string tun_id, std::string proxy_id, u_int32_t tran_count) {
   NotifyProxyShutdownPeerConnMsg req_msg;
+  req_msg.tran_count = htonl(tran_count);
   strcpy(req_msg.tun_id, tun_id.c_str());
   strcpy(req_msg.proxy_id, proxy_id.c_str());
   CtlMsg ctl_msg = make_ctl_msg(NotifyProxyShutdownPeerConn, (char *)&req_msg, sizeof(NotifyProxyShutdownPeerConnMsg));
@@ -50,17 +52,26 @@ void Control::shutdownFromPublic(std::string tun_id, std::string proxy_id) {
 };
 
 void Control::handleShutdownPublicConn(void* msg, SP_CtlConn conn) {
-  printf("handleShutdownPublicConn\n");
   NotifyProxyShutdownPeerConnMsg *req_msg = (NotifyProxyShutdownPeerConnMsg *)msg;
+  u_int32_t theoreticalTotalRecvCount = ntohl(req_msg->tran_count);
   std::string tun_id = req_msg->tun_id;
   std::string proxy_id = req_msg->proxy_id;
   bool tunIsExist;
   SP_Tunnel tun = tunnel_map_.get(tun_id, tunIsExist);
   if (!tunIsExist) {
-    printf("[handleShutdownPublicConn]tun %s not exist\n", tun_id.c_str());
+    SPDLOG_CRITICAL("tun {} not exist", tun_id);
     return;
   }
-  tun->shutdownPublicConn(proxy_id);
+
+  bool proxyConnIsExist;
+  SP_ProxyConn proxyConn = tun->getProxyConn(proxy_id, proxyConnIsExist);
+  if (!proxyConnIsExist) {
+    SPDLOG_CRITICAL("proxy conn {} not exist", proxy_id);
+    return;
+  }
+  
+  proxyConn->incrTheoreticalTotalRecvCount(theoreticalTotalRecvCount);
+  tun->shutdownPublicConn(proxyConn);
 };
 
 void Control::handleCtlConnClose(SP_CtlConn conn) {
@@ -74,7 +85,7 @@ void Control::handleFreeProxyConnReq(void* msg, SP_CtlConn conn) {
   bool tunIsExist;
   SP_Tunnel tun = tunnel_map_.get(tun_id, tunIsExist);
   if (!tunIsExist) {
-    printf("[handleFreeProxyConnReq]tun %s not exist\n", tun_id.c_str());
+    SPDLOG_CRITICAL("tun {} not exist", tun_id);
     return;
   }
   tun->freeProxyConn(proxy_id);

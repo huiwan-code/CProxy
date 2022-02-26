@@ -23,9 +23,12 @@ class Tunnel {
         
     safe_unordered_map<std::string, SP_ProxyConn> proxy_conn_map;
     std::string getValidProxyID();
-    void shutdownFromLocal(std::string proxy_id);
+    void shutdownFromLocal(std::string proxy_id, u_int32_t tran_count);
     SP_ProxyConn createProxyConn(u_int32_t proxy_port);
-    SP_LocalConn createLocalConn(std::string proxy_id);
+    SP_LocalConn createLocalConn(SP_ProxyConn, int);
+    void shutdonwLocalConn(SP_ProxyConn);
+    int local_fd_created_;
+    int local_fd_finished_;
   private:
     std::string tun_id_;
     std::string local_server_host_;

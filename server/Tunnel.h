@@ -33,7 +33,6 @@ class Tunnel {
         getsockname(listen_fd_, (struct sockaddr *)&listenAddr, &listenAddrLen);
         listen_port_ = ntohs(listenAddr.sin_port);
         listen_addr_ = inet_ntoa(listenAddr.sin_addr);
-        printf("addr: %s:%d\n", listen_addr_.c_str(), listen_port_);
         acceptor_ = SP_Channel(new Channel(listen_fd_));
         acceptor_->setEvents(EPOLLIN | EPOLLET | EPOLLRDHUP);
         acceptor_->setReadHandler(std::bind(&Tunnel::newPublicConnHandler, this));
@@ -44,17 +43,20 @@ class Tunnel {
     void claimProxyConn(SP_ProxyConn);
     int getListenPort() {return listen_port_;}
     std::string getListenAddr() {return listen_addr_;}
-    void shutdownFromPublic(std::string proxy_id);
+    void shutdownFromPublic(std::string proxy_id, u_int32_t tran_count);
     SP_ProxyConn popFreeProxyConn(bool&);
     void reqStartProxy(int public_fd, SP_ProxyConn proxy_conn);
     void bindPublicFdToProxyConn(int public_fd, SP_ProxyConn proxy_conn);
     void freeProxyConn(std::string);
-    void shutdownPublicConn(std::string proxy_id);
+    void shutdownPublicConn(SP_ProxyConn);
+    SP_ProxyConn getProxyConn(std::string proxy_id, bool& isExist);
   private:
     void newPublicConnHandler();
     void addCtlPendingFunctor(voidFunctor&&);
     void handleStartProxyConnRsp(void*, SP_ProxyConn);
     void handlePeerProxyConnClose(SP_ProxyConn);
+    int public_fd_in_;
+    int public_fd_finish_;
     std::string tun_id_;
     int listen_fd_;
     std::string listen_addr_;

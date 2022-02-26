@@ -10,6 +10,12 @@
 #include <netdb.h>
 #include <random>
 #include <ctime>
+#include <execinfo.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "spdlog/spdlog.h"
+
 int socketBindListen(int port) {
   if (port < 0 || port > 65535) {
     return -1;
@@ -95,7 +101,6 @@ size_t writen(int fd, const char *buffer, size_t size) {
       if (errno == EINTR) {
         continue;
       } else if (errno == EAGAIN){
-        printf("in writen");
         // 缓冲区满了，直接退出，让外层决定如何处理
         break;
       } else {
@@ -132,7 +137,9 @@ int tcp_connect(const char *host, u_int32_t server_port) {
     close(sock_fd);
     return -1;
   }
-  setfdNonBlock(sock_fd);
+  if(setfdNonBlock(sock_fd)) {
+    SPDLOG_CRITICAL("设置非阻塞失败: {}", strerror(errno));
+  };
   return sock_fd;
 }
 
@@ -153,9 +160,4 @@ std::string rand_str(int len) {
       buffer += tmp;
   }
     return buffer;
-};
-
-char* getNowTime() {
-  std::time_t result = std::time(NULL);
-  return std::asctime(std::localtime(&result));
 };
