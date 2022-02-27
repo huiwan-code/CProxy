@@ -14,7 +14,7 @@ class TranConn : public Conn {
       theoretical_total_recv_count_mutex_(),
       tran_count_(0),
       recv_count_(0),
-      theoretical_total_recv_count_(0) {
+      theoretical_total_recv_count_(-1) {
       pipe(pipe_fds_);
     }
     ~TranConn(){
@@ -51,19 +51,30 @@ class TranConn : public Conn {
       std::unique_lock<std::mutex> lock(tran_count_mutex_);
       tran_count_ = 0;
     }
-    u_int32_t getTheoreticalTotalRecvCount() {
+    int getTheoreticalTotalRecvCount() {
       std::unique_lock<std::mutex> lock(theoretical_total_recv_count_mutex_);
       return theoretical_total_recv_count_;
     }
 
     void incrTheoreticalTotalRecvCount(u_int32_t addedCount) {
       std::unique_lock<std::mutex> lock(theoretical_total_recv_count_mutex_);
-      theoretical_total_recv_count_ += addedCount;
+      if (theoretical_total_recv_count_ == -1) {
+        theoretical_total_recv_count_ = addedCount;
+      } else {
+        theoretical_total_recv_count_ += addedCount;
+      }
+      
     }
 
     void resetTheoreticalTotalRecvCount() {
       std::unique_lock<std::mutex> lock(theoretical_total_recv_count_mutex_);
-      theoretical_total_recv_count_ = 0;
+      theoretical_total_recv_count_ = -1;
+    }
+
+    void resetPipeFd() {
+      close(pipe_fds_[0]);
+      close(pipe_fds_[1]);
+      pipe(pipe_fds_);
     }
   protected:
     // 数据流向对端的管道
@@ -73,9 +84,11 @@ class TranConn : public Conn {
     std::mutex recv_count_mutex_;
     std::mutex tran_count_mutex_;
     std::mutex theoretical_total_recv_count_mutex_;
+    
     u_int32_t recv_count_;
     u_int32_t tran_count_;
-    u_int32_t theoretical_total_recv_count_;
+    // 初始化为-1，
+    int theoretical_total_recv_count_;
 };
 
 using SP_TranConn = std::shared_ptr<TranConn>;

@@ -23,6 +23,7 @@ void ProxyConn::handleRead() {
     }
     incrRecvCount(bs);
     SPDLOG_INFO("proxy_id {} recv {}; total_recv: {}", proxy_id_, getRecvCount(), getTheoreticalTotalRecvCount());
+    
     if (getRecvCount() == getTheoreticalTotalRecvCount()) {
       closeLocalPeerConnHandler_(shared_from_this());
     }
@@ -140,7 +141,9 @@ int ProxyConn::send_msg_dirct(ProxyCtlMsg& msg) {
 bool ProxyConn::shutdownFromRemote() {
   std::unique_lock<std::mutex> lock(close_mutex_);
   // 关闭写方向
-  shutdown(peer_conn_fd_, 1);
+  // shutdown关闭后，会直接往目标fd的等待队列中添加EPOLLIN，即使当时fd已经没有监听这个事件
+  // https://mp.weixin.qq.com/s?__biz=MzUxNDUwOTc0Nw==&mid=2247484253&idx=1&sn=e42ed5e1af8382eb6dffa7550470cdf3
+  shutdown(peer_conn_fd_, SHUT_WR);
   // 如果之前已经是半关闭状态，将localConn与proxyConn断开
   if (half_close_) {
     resetConn();
@@ -169,8 +172,9 @@ void ProxyConn::resetConn() {
   resetRecvCount();
   resetTranCount();
   resetTheoreticalTotalRecvCount();
+  resetPipeFd();
   is_start_ = false;
-  peerConn_ = nullptr;
+  // peerConn_ = nullptr;
   half_close_ = false;
 };
 

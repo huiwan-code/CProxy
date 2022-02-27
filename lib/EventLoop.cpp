@@ -26,10 +26,9 @@ void EventLoop::loop() {
   for(;;) {
     readyChannels.clear();
     readyChannels = poller_->waitForReadyChannels();
+    SPDLOG_INFO("new eventloop loop");
     for (SP_Channel chan:readyChannels) {
-      SPDLOG_INFO("before channel handleEvent");
       chan->handleEvents();
-      SPDLOG_INFO("after channel handleEvent");
     }
   }
 }

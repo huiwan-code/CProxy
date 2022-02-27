@@ -56,6 +56,7 @@ void Control::handleShutdownPublicConn(void* msg, SP_CtlConn conn) {
   u_int32_t theoreticalTotalRecvCount = ntohl(req_msg->tran_count);
   std::string tun_id = req_msg->tun_id;
   std::string proxy_id = req_msg->proxy_id;
+  SPDLOG_INFO("handleShutdownPublicConn proxy_id {}", proxy_id);
   bool tunIsExist;
   SP_Tunnel tun = tunnel_map_.get(tun_id, tunIsExist);
   if (!tunIsExist) {
