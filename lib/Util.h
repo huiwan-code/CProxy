@@ -21,6 +21,7 @@ int tcp_connect(const char *host, u_int32_t server_port);
 
 std::string rand_str(int len);
 
+void parse_host_port(char *addr, std::string& host, u_int32_t& port);
 typedef std::function<void()> voidFunctor;
 
 template<typename keyT, typename valueT>

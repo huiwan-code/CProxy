@@ -79,11 +79,11 @@ class ProxyConn : public TranConn, public std::enable_shared_from_this<ProxyConn
     std::string getProxyID() {return proxy_id_;}
     bool is_start() {return is_start_;}
   private:
-    SP_Buffer out_buffer_;
-    SP_Conn peerConn_;
-    bool is_start_;
     std::mutex close_mutex_;
+    SP_Buffer out_buffer_;
+    bool is_start_;
     bool half_close_;
+    SP_Conn peerConn_;
     std::string proxy_id_;
     void handleRead();
     void handleWrite();

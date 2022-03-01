@@ -25,7 +25,7 @@ class Tunnel {
     std::string getValidProxyID();
     void shutdownFromLocal(std::string proxy_id, u_int32_t tran_count);
     SP_ProxyConn createProxyConn(u_int32_t proxy_port);
-    SP_LocalConn createLocalConn(SP_ProxyConn, int);
+    SP_LocalConn createLocalConn(SP_ProxyConn);
     void shutdonwLocalConn(SP_ProxyConn);
     int local_fd_created_;
     int local_fd_finished_;
@@ -33,8 +33,8 @@ class Tunnel {
     std::string tun_id_;
     std::string local_server_host_;
     u_int32_t local_server_port_;
-    u_int32_t proxy_server_port_;
     std::string proxy_server_host_;
+    u_int32_t proxy_server_port_;
     SP_EventLoopThreadPool work_pool_;
     Client* client_;
     void handleStartProxyConnReq(void*, SP_ProxyConn);

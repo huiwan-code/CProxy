@@ -9,8 +9,8 @@ class TranConn : public Conn {
     TranConn(int fd, SP_EventLoopThread thread) 
     : Conn{fd, thread->getLoop()},
       thread_(thread),
-      recv_count_mutex_(),
       tran_count_mutex_(),
+      recv_count_mutex_(),
       theoretical_total_recv_count_mutex_(),
       tran_count_(0),
       recv_count_(0),
@@ -24,11 +24,11 @@ class TranConn : public Conn {
     void setPeerConnFd(int fd) {peer_conn_fd_ = fd;}
     SP_EventLoopThread getThread(){return thread_;}
 
-    u_int32_t getRecvCount() {
+    int getRecvCount() {
       std::unique_lock<std::mutex> lock(recv_count_mutex_);
       return recv_count_;
     };
-    void incrRecvCount(u_int32_t addedCount) {
+    void incrRecvCount(int addedCount) {
       std::unique_lock<std::mutex> lock(recv_count_mutex_);
       recv_count_ += addedCount;
     }
@@ -37,12 +37,12 @@ class TranConn : public Conn {
       std::unique_lock<std::mutex> lock(recv_count_mutex_);
       recv_count_ = 0;
     }
-    u_int32_t getTranCount() {
+    int getTranCount() {
       std::unique_lock<std::mutex> lock(tran_count_mutex_);
       return tran_count_;
     }
 
-    void incrTranCount(u_int32_t addedCount) {
+    void incrTranCount(int addedCount) {
       std::unique_lock<std::mutex> lock(tran_count_mutex_);
       tran_count_ += addedCount;
     }
@@ -81,12 +81,13 @@ class TranConn : public Conn {
     int pipe_fds_[2];
     int peer_conn_fd_;
     SP_EventLoopThread thread_;
-    std::mutex recv_count_mutex_;
+    
     std::mutex tran_count_mutex_;
+    std::mutex recv_count_mutex_;
     std::mutex theoretical_total_recv_count_mutex_;
     
-    u_int32_t recv_count_;
-    u_int32_t tran_count_;
+    int tran_count_;
+    int recv_count_;
     // 初始化为-1，
     int theoretical_total_recv_count_;
 };

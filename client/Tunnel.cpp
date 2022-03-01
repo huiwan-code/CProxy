@@ -18,7 +18,7 @@ std::string Tunnel::getValidProxyID() {
 
 SP_ProxyConn Tunnel::createProxyConn(u_int32_t proxy_port) {
   // 连接服务端代理端口
-  int proxy_conn_fd = tcp_connect((client_->proxy_server_host).c_str(), proxy_port);
+  int proxy_conn_fd = tcp_connect((client_->proxy_server_host_).c_str(), proxy_port);
   if (proxy_conn_fd <= 0) {
     SPDLOG_CRITICAL("connect proxy port error");
     return SP_ProxyConn{};
@@ -36,15 +36,14 @@ SP_ProxyConn Tunnel::createProxyConn(u_int32_t proxy_port) {
   return proxyConn;
 };
 
-SP_LocalConn Tunnel::createLocalConn(SP_ProxyConn proxyConn, int flag) {
+SP_LocalConn Tunnel::createLocalConn(SP_ProxyConn proxyConn) {
   int local_conn_fd = tcp_connect(local_server_host_.c_str(), local_server_port_);
   if (local_conn_fd <= 0) {
     SPDLOG_CRITICAL("connect local server error");
     return SP_LocalConn{};
   }
-  SPDLOG_INFO("create localConn fd: {}", local_conn_fd);
   // 封装localConn
-  SP_LocalConn localConn(new LocalConn(local_conn_fd, proxyConn->getThread(), this, proxyConn->getProxyID(), flag));
+  SP_LocalConn localConn(new LocalConn(local_conn_fd, proxyConn->getThread(), this, proxyConn->getProxyID()));
   return localConn;
 };
 
@@ -76,7 +75,7 @@ void Tunnel::handleStartProxyConnReq(void* msg, SP_ProxyConn conn) {
   }
 
   // 创建localConn
-  SP_LocalConn localConn = createLocalConn(proxyConn, 2);
+  SP_LocalConn localConn = createLocalConn(proxyConn);
   
   StartProxyConnRspMsg rsp_msg;
   strcpy(rsp_msg.proxy_id, proxy_id.c_str());

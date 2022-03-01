@@ -21,7 +21,7 @@ class Tunnel {
     typedef std::shared_ptr<Control> SP_Control;
     Tunnel(std::string tun_id, SP_EventLoopThread listenThread, SP_EventLoopThreadPool workThreadPool, SP_Control ctl)
     : tun_id_(tun_id),
-      listen_fd_(socketBindListen(9999)),
+      listen_fd_(socketBindListen(0)),
       listen_thread_(listenThread),
       work_pool_(workThreadPool),
       ctl_(ctl),

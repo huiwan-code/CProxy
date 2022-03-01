@@ -42,7 +42,6 @@ try{
     return;
   }
 
-  SPDLOG_INFO("ctl recv type: {}", msg.type);
   switch(msg.type) {
     case NewCtlReq:
       {

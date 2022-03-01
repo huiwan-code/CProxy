@@ -59,7 +59,6 @@ void Tunnel::bindPublicFdToProxyConn(int publicFd, SP_ProxyConn proxyConn) {
   // 绑定proxyConn和public
   proxyConn->start(publicConn);
   proxy_conn_map_.add(proxyConn->getProxyID(), proxyConn);
-  SPDLOG_INFO("bind proxy {} to public_fd {}", proxyConn->getProxyID(), publicFd);
 };
 
 void Tunnel::shutdownFromPublic(std::string proxy_id, u_int32_t tran_count) {
@@ -123,19 +122,15 @@ void Tunnel::shutdownPublicConn(SP_ProxyConn proxyConn) {
   int theoreticalTotalRecvCount = proxyConn->getTheoreticalTotalRecvCount();
   int recvCount = proxyConn->getRecvCount();
   if (recvCount != theoreticalTotalRecvCount) {
-    SPDLOG_INFO("shutdownPublicConn not match recvCount {} theoreticalTotalRecvCount {}", recvCount, theoreticalTotalRecvCount);
     return;
   }
-  SPDLOG_INFO("shutdownPublicConn start");
   bool isFree = proxyConn->shutdownFromRemote();
   if (isFree) {
-    SPDLOG_INFO("shutdownPublicConn  free proxy conn");
     freeProxyConn(proxyConn->getProxyID());
   }
 };
 
 void Tunnel::freeProxyConn(std::string proxy_id) {
-  SPDLOG_INFO("freeProxyConn {}", proxy_id);
   bool proxyConnIsExist;
   SP_ProxyConn proxyConn = proxy_conn_map_.get(proxy_id, proxyConnIsExist);
   if (!proxyConnIsExist) {

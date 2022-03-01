@@ -161,3 +161,19 @@ std::string rand_str(int len) {
   }
     return buffer;
 };
+
+void parse_host_port(char *addr, std::string& host, u_int32_t& port) {
+  char addr_arr[100];
+  strcpy(addr_arr, addr);
+  char *splitPtr=strtok(addr_arr,":");
+  char *split_ret[2];
+  for (int i = 0; i < 2; i++) {
+    split_ret[i] = splitPtr;
+    splitPtr=strtok(NULL,":");
+    if (splitPtr == nullptr) {
+      break;
+    }
+  }
+  host = split_ret[0];
+  port = atoi(split_ret[1]);
+};

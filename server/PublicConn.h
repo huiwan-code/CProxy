@@ -16,6 +16,7 @@ class PublicConn : public TranConn, public std::enable_shared_from_this<PublicCo
       channel_->setEvents(EPOLLET | EPOLLIN | EPOLLRDHUP);
       channel_->setReadHandler(std::bind(&PublicConn::handleRead, this));
       channel_->setPostHandler(std::bind(&PublicConn::postHandle, this));
+      channel_->setNeedCloseWhenDelete(false);
     }
     ~PublicConn(){
       printf("publicConn killing\n");

@@ -22,7 +22,6 @@ void ProxyConn::handleRead() {
       return;
     }
     incrRecvCount(bs);
-    SPDLOG_INFO("proxy_id {} recv {}; total_recv: {}", proxy_id_, getRecvCount(), getTheoreticalTotalRecvCount());
     
     if (getRecvCount() == getTheoreticalTotalRecvCount()) {
       closeLocalPeerConnHandler_(shared_from_this());
@@ -59,7 +58,6 @@ void ProxyConn::handleRead() {
     SPDLOG_CRITICAL("read msg body err readNum: {}; body_len: {}", readNum, body_len);
     return;
   }
-  SPDLOG_INFO("proxy {} recv type: {}", proxy_id_, msg.type);
   switch(msg.type) {
     case ProxyMetaSet:
       {
@@ -172,7 +170,6 @@ void ProxyConn::resetConn() {
   resetRecvCount();
   resetTranCount();
   resetTheoreticalTotalRecvCount();
-  resetPipeFd();
   is_start_ = false;
   // peerConn_ = nullptr;
   half_close_ = false;
@@ -181,8 +178,6 @@ void ProxyConn::resetConn() {
 ProxyCtlMsg make_proxy_ctl_msg(ProxyCtlMsgType type, char *data, size_t data_len) {
   ProxyCtlMsg msg = ProxyCtlMsg{};
   msg.type = type;
-  SPDLOG_INFO("send proxy ctl msg: {}", data);
-  SPDLOG_INFO("send proxy ctl type: {}", msg.type);
   memcpy(msg.data, data, data_len);
   msg.len = sizeof(u_int32_t) + sizeof(ProxyCtlMsgType) + data_len;
   return msg;

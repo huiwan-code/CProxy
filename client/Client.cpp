@@ -19,10 +19,10 @@
 Client::Client(int workThreadNum, std::string proxy_server_host, u_int32_t proxy_server_port, std::string local_server_host, u_int32_t local_server_port) 
 : loop_(new EventLoop()),
   eventLoopThreadPool_(new EventLoopThreadPool(workThreadNum)),
-  proxy_server_host(proxy_server_host),
-  proxy_server_port(proxy_server_port),
-  local_server_host(local_server_host),
-  local_server_port(local_server_port) {
+  proxy_server_host_(proxy_server_host),
+  proxy_server_port_(proxy_server_port),
+  local_server_host_(local_server_host),
+  local_server_port_(local_server_port) {
     ignoreSigpipe();
   }
 
@@ -35,7 +35,7 @@ void Client::start() {
 
 // 因为一个客户端只会有一个ctlConn，所以在ctlConn中的处理函数都不需要加锁处理
 void Client::initCtlConn() {
-  int conn_fd = tcp_connect(proxy_server_host.c_str(), proxy_server_port);
+  int conn_fd = tcp_connect(proxy_server_host_.c_str(), proxy_server_port_);
   assert(conn_fd > 0);
   SP_CtlConn conn(new CtlConn(conn_fd, loop_));
   ctl_conn_ = conn;
@@ -50,7 +50,7 @@ void Client::initCtlConn() {
 void Client::handleNewCtlRsp(void* msg, SP_CtlConn conn) {
   NewCtlRspMsg *new_ctl_rsp_msg = (NewCtlRspMsg *)msg;
   conn->set_ctl_id(std::string(new_ctl_rsp_msg->ctl_id));
-  client_id = std::string(new_ctl_rsp_msg->ctl_id);
+  client_id_ = std::string(new_ctl_rsp_msg->ctl_id);
   reqNewTunnel();
 }
 
@@ -76,8 +76,8 @@ void Client::reqNewCtl() {
 // 新建应用隧道
 void Client::reqNewTunnel() {
   NewTunnelReqMsg req_msg;
-  req_msg.local_server_port = local_server_port;
-  strcpy(req_msg.local_server_host, local_server_host.c_str());
+  req_msg.local_server_port = local_server_port_;
+  strcpy(req_msg.local_server_host, local_server_host_.c_str());
   CtlMsg msg = make_ctl_msg(NewTunnelReq, (char *)(&req_msg), sizeof(req_msg));
   ctl_conn_->send_msg(msg);
 }
@@ -98,11 +98,11 @@ void Client::handleProxyNotify(void *msg, SP_CtlConn conn) {
   (tun->proxy_conn_map).add(proxyConn->getProxyID(), proxyConn);
 
   // 创建LocalConn
-  SP_LocalConn localConn = tun->createLocalConn(proxyConn, 1);
+  SP_LocalConn localConn = tun->createLocalConn(proxyConn);
 
   // 发送给服务端告知这个代理链接一些元信息
   ProxyMetaSetMsg meta_set_req_msg = ProxyMetaSetMsg{};
-  strcpy(meta_set_req_msg.ctl_id, client_id.c_str());
+  strcpy(meta_set_req_msg.ctl_id, client_id_.c_str());
   strcpy(meta_set_req_msg.tun_id, tun_id.c_str());
   strcpy(meta_set_req_msg.proxy_id, (proxyConn->getProxyID()).c_str());
   ProxyCtlMsg proxy_ctl_msg = make_proxy_ctl_msg(ProxyMetaSet, (char *)&meta_set_req_msg, sizeof(meta_set_req_msg));
@@ -133,7 +133,6 @@ void Client::handleShutdownLocalConn(void *msg, SP_CtlConn conn) {
     SPDLOG_CRITICAL("proxy_id: {} not exist", proxy_id);
     return;
   }
-  SPDLOG_INFO("handleShutdownLocalConn proxy_id {} local_fd {}", proxy_id, proxyConn->getPeerConnFd());
   proxyConn->incrTheoreticalTotalRecvCount(theoreticalTotalRecvCount);
   tun->shutdonwLocalConn(proxyConn);
 };

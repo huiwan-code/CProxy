@@ -8,9 +8,12 @@ typedef std::shared_ptr<ChannelOwner> SP_ChannelOwner;
 class Channel {
   public:
     typedef std::function<void()> EventHandler;
-    Channel(int fd): fd_(fd) {};
+    Channel(int fd): fd_(fd),needCloseWhenDelete(true) {};
     ~Channel(){
-      close(fd_);}
+      if (needCloseWhenDelete) {
+        close(fd_);
+      }
+    }
     void setFd(int fd) {fd_=fd;};
     int getFd() {return fd_;};
     void setEvents(__uint32_t events) {events_ = events;};
@@ -25,8 +28,10 @@ class Channel {
     void setChannelOwner(SP_ChannelOwner owner) {belong_to_ = owner;}
     void handleEvents();
     bool isPeerClosed() {return peerClosed_;}
+    void setNeedCloseWhenDelete(bool needClose) {needCloseWhenDelete = needClose;}
   private:
     int fd_;
+    bool needCloseWhenDelete;
     __uint32_t events_;
     __uint32_t revents_;
     EventHandler readHandler_ = [](){};
