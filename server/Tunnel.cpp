@@ -35,6 +35,11 @@ void Tunnel::newPublicConnHandler() {
   }
 }
 
+void Tunnel::acceptPostHandler() {
+  acceptor_->setEvents(EPOLLIN | EPOLLET | EPOLLRDHUP);
+  (listen_thread_->getLoop())->updatePoller(acceptor_);
+}
+
 int Tunnel::getAndPopUndealPublicFd() {
   int fd;
   {
