@@ -36,7 +36,6 @@ class Tunnel {
         acceptor_ = SP_Channel(new Channel(listen_fd_));
         acceptor_->setEvents(EPOLLIN | EPOLLET | EPOLLRDHUP);
         acceptor_->setReadHandler(std::bind(&Tunnel::newPublicConnHandler, this));
-        acceptor_->setPostHandler(std::bind(&Tunnel::acceptPostHandler, this));
         listen_thread_->addChannel(acceptor_);
       };
     
@@ -53,7 +52,6 @@ class Tunnel {
     SP_ProxyConn getProxyConn(std::string proxy_id, bool& isExist);
   private:
     void newPublicConnHandler();
-    void acceptPostHandler();
     void addCtlPendingFunctor(voidFunctor&&);
     void handleStartProxyConnRsp(void*, SP_ProxyConn);
     void handlePeerProxyConnClose(SP_ProxyConn);

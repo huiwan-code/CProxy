@@ -23,7 +23,7 @@ void Tunnel::newPublicConnHandler() {
       reqStartProxy(accept_fd, proxyConn);
       // 将proxyConn暂挂到wait_for_start_proxy_conn_map_;
       wait_for_start_proxy_conn_map_.add(proxyConn->getProxyID(), proxyConn);
-      return;
+      continue;
     }
 
     {
@@ -33,11 +33,6 @@ void Tunnel::newPublicConnHandler() {
     // 请求生成一个proxyConn
     ctl_->notifyClientNeedProxy(tun_id_);
   }
-}
-
-void Tunnel::acceptPostHandler() {
-  acceptor_->setEvents(EPOLLIN | EPOLLET | EPOLLRDHUP);
-  (listen_thread_->getLoop())->updatePoller(acceptor_);
 }
 
 int Tunnel::getAndPopUndealPublicFd() {
