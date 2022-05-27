@@ -1,16 +1,15 @@
-#include <functional>
 #include <netdb.h>
-#include <exception>
 #include <string.h>
+#include <exception>
+#include <functional>
 
+#include "Buffer.h"
 #include "CtlConn.h"
 #include "Msg.h"
-#include "Buffer.h"
 #include "Util.h"
 #include "spdlog/spdlog.h"
 
-void CtlConn::handleRead() 
-try{
+void CtlConn::handleRead() try {
   // 从fd中读取ctl_msg数据，
   CtlMsg msg;
   size_t max_msg_len = sizeof(CtlMsg);
@@ -42,63 +41,55 @@ try{
     return;
   }
 
-  switch(msg.type) {
-    case NewCtlReq:
-      {
-        NewCtlReqMsg new_ctl_req_msg;
-        memcpy(&new_ctl_req_msg, msg.data, get_ctl_msg_body_size(msg));
-        newCtlReqHandler_((void*)&new_ctl_req_msg, shared_from_this());
-        break;
-      }
-    case NewCtlRsp:
-      {
-        size_t msg_data_size = get_ctl_msg_body_size(msg);
-        NewCtlRspMsg *new_ctl_rsp_msg = (NewCtlRspMsg *)malloc(sizeof(NewCtlRspMsg) + msg_data_size);
-        memset(new_ctl_rsp_msg->ctl_id, 0, msg_data_size);
-        memcpy(new_ctl_rsp_msg, msg.data, msg_data_size);
-        newCtlRspHandler_((void*)new_ctl_rsp_msg, shared_from_this());
-        free(new_ctl_rsp_msg);
-        break;
-      }
-    case NewTunnelReq:
-      {
-        NewTunnelReqMsg new_tunnel_req_msg;
-        memcpy(&new_tunnel_req_msg, msg.data, get_ctl_msg_body_size(msg));
-        newTunnelReqHandler_((void*)&new_tunnel_req_msg, shared_from_this());
-        break;
-      }
-    case NewTunnelRsp:
-      {
-        NewTunnelRspMsg new_tunnel_rsp_msg;
-        memcpy(&new_tunnel_rsp_msg, msg.data, get_ctl_msg_body_size(msg));
-        newTunnelRspHandler_((void*)&new_tunnel_rsp_msg, shared_from_this());
-        break;
-      }
-    case NotifyClientNeedProxy:
-      {
-        NotifyClientNeedProxyMsg req_msg;
-        memcpy(&req_msg, msg.data, get_ctl_msg_body_size(msg));
-        notifyClientNeedProxyHandler_((void*)&req_msg, shared_from_this());
-        break;
-      }
-    case NotifyProxyShutdownPeerConn:
-      {
-        NotifyProxyShutdownPeerConnMsg req_msg;
-        memcpy(&req_msg, msg.data, get_ctl_msg_body_size(msg));
-        notifyProxyShutdownPeerConnHandler_((void*)&req_msg, shared_from_this());
-        break;
-      }
-    case FreeProxyConnReq:
-      {
-        FreeProxyConnReqMsg req_msg;
-        memcpy(&req_msg, msg.data, get_ctl_msg_body_size(msg));
-        freeProxyConnReqHandler_((void*)&req_msg, shared_from_this());
-        break;
-      }
+  switch (msg.type) {
+    case NewCtlReq: {
+      NewCtlReqMsg new_ctl_req_msg;
+      memcpy(&new_ctl_req_msg, msg.data, get_ctl_msg_body_size(msg));
+      newCtlReqHandler_((void *)&new_ctl_req_msg, shared_from_this());
+      break;
+    }
+    case NewCtlRsp: {
+      size_t msg_data_size = get_ctl_msg_body_size(msg);
+      NewCtlRspMsg *new_ctl_rsp_msg = (NewCtlRspMsg *)malloc(sizeof(NewCtlRspMsg) + msg_data_size);
+      memset(new_ctl_rsp_msg->ctl_id, 0, msg_data_size);
+      memcpy(new_ctl_rsp_msg, msg.data, msg_data_size);
+      newCtlRspHandler_((void *)new_ctl_rsp_msg, shared_from_this());
+      free(new_ctl_rsp_msg);
+      break;
+    }
+    case NewTunnelReq: {
+      NewTunnelReqMsg new_tunnel_req_msg;
+      memcpy(&new_tunnel_req_msg, msg.data, get_ctl_msg_body_size(msg));
+      newTunnelReqHandler_((void *)&new_tunnel_req_msg, shared_from_this());
+      break;
+    }
+    case NewTunnelRsp: {
+      NewTunnelRspMsg new_tunnel_rsp_msg;
+      memcpy(&new_tunnel_rsp_msg, msg.data, get_ctl_msg_body_size(msg));
+      newTunnelRspHandler_((void *)&new_tunnel_rsp_msg, shared_from_this());
+      break;
+    }
+    case NotifyClientNeedProxy: {
+      NotifyClientNeedProxyMsg req_msg;
+      memcpy(&req_msg, msg.data, get_ctl_msg_body_size(msg));
+      notifyClientNeedProxyHandler_((void *)&req_msg, shared_from_this());
+      break;
+    }
+    case NotifyProxyShutdownPeerConn: {
+      NotifyProxyShutdownPeerConnMsg req_msg;
+      memcpy(&req_msg, msg.data, get_ctl_msg_body_size(msg));
+      notifyProxyShutdownPeerConnHandler_((void *)&req_msg, shared_from_this());
+      break;
+    }
+    case FreeProxyConnReq: {
+      FreeProxyConnReqMsg req_msg;
+      memcpy(&req_msg, msg.data, get_ctl_msg_body_size(msg));
+      freeProxyConnReqHandler_((void *)&req_msg, shared_from_this());
+      break;
+    }
   }
-}
-catch (const std::exception& e) {
-  std::cout << "read ctl_conn except: "<< e.what() << std::endl;
+} catch (const std::exception &e) {
+  std::cout << "read ctl_conn except: " << e.what() << std::endl;
   abort();
 }
 
@@ -123,16 +114,16 @@ void CtlConn::postHandle() {
     return;
   }
 
-  channel_->setEvents(EPOLLET | EPOLLIN  | EPOLLRDHUP);
+  channel_->setEvents(EPOLLET | EPOLLIN | EPOLLRDHUP);
   if (out_buffer_->get_unread_size() > 0) {
     channel_->addEvents(EPOLLOUT);
   }
-  
+
   loop_->updatePoller(channel_);
 };
 
 // 线程安全
-void CtlConn::send_msg(CtlMsg& msg) {
+void CtlConn::send_msg(CtlMsg &msg) {
   std::unique_lock<std::mutex> lock(mutex_);
   u_int32_t msg_len = msg.len;
   msg.len = htonl(msg.len);
@@ -145,4 +136,3 @@ void CtlConn::send_msg(CtlMsg& msg) {
   channel_->addEvents(EPOLLOUT);
   loop_->updatePoller(channel_);
 }
-

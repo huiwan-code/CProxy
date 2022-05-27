@@ -1,8 +1,8 @@
 #include <assert.h>
-#include <thread>
-#include <mutex>
 #include <exception>
 #include <iostream>
+#include <mutex>
+#include <thread>
 
 #include "Conn.h"
 #include "EventLoopThread.h"
@@ -12,9 +12,8 @@ EventLoopThread::~EventLoopThread() {
     thread_.join();
   }
 }
-void EventLoopThread::threadFunc() 
-try{
-  if(!loop_) {
+void EventLoopThread::threadFunc() try {
+  if (!loop_) {
     throw "loop_ is null";
   }
 
@@ -24,21 +23,16 @@ try{
     cond_.notify_all();
   }
   loop_->loop();
-}
-catch(std::exception& e) {
+} catch (std::exception& e) {
   SPDLOG_CRITICAL("EventLoopThread::threadFunc exception: {}", e.what());
   abort();
 }
 
 void EventLoopThread::startLoop() {
   std::unique_lock<std::mutex> lock(mutex_);
-  while(!started_) cond_.wait(lock);
+  while (!started_) cond_.wait(lock);
 }
 
-void EventLoopThread::addChannel(SP_Channel chan) {
-  loop_->addToPoller(chan);
-}
+void EventLoopThread::addChannel(SP_Channel chan) { loop_->addToPoller(chan); }
 
-void EventLoopThread::addConn(SP_Conn conn) {
-  loop_->addToPoller(conn->getChannel());
-}
+void EventLoopThread::addConn(SP_Conn conn) { loop_->addToPoller(conn->getChannel()); }

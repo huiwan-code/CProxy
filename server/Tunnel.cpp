@@ -1,22 +1,23 @@
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <string.h>
-#include <arpa/inet.h>
 #include <algorithm>
 
-#include "Tunnel.h"
-#include "lib/EventLoopThread.h"
-#include "PublicConn.h"
-#include "lib/ProxyConn.h"
-#include "lib/CtlConn.h"
 #include "Control.h"
+#include "PublicConn.h"
+#include "Tunnel.h"
+#include "lib/CtlConn.h"
+#include "lib/EventLoopThread.h"
+#include "lib/ProxyConn.h"
 
 void Tunnel::newPublicConnHandler() {
   struct sockaddr_in client_addr;
   memset(&client_addr, 0, sizeof(client_addr));
   socklen_t client_addr_len = sizeof(client_addr);
   int accept_fd = 0;
-  while((accept_fd = accept(listen_fd_, (struct sockaddr *)&client_addr, &client_addr_len)) > 0) {
-    SPDLOG_INFO("public_accept_fd: {}; from:{}; port:{}", accept_fd, inet_ntoa(client_addr.sin_addr),ntohs(client_addr.sin_port));
+  while ((accept_fd = accept(listen_fd_, (struct sockaddr*)&client_addr, &client_addr_len)) > 0) {
+    SPDLOG_INFO("public_accept_fd: {}; from:{}; port:{}", accept_fd,
+                inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
     bool freeIsEmpty;
     SP_ProxyConn proxyConn = popFreeProxyConn(freeIsEmpty);
     if (!freeIsEmpty) {
@@ -46,29 +47,32 @@ int Tunnel::getAndPopUndealPublicFd() {
 };
 
 void Tunnel::claimProxyConn(SP_ProxyConn proxyConn) {
-  proxyConn->setStartProxyConnRspHandler_(std::bind(&Tunnel::handleStartProxyConnRsp, this, std::placeholders::_1, std::placeholders::_2));
-  proxyConn->setCloseHandler_(std::bind(&Tunnel::handlePeerProxyConnClose, this, std::placeholders::_1));
-  proxyConn->setCloseLocalPeerConnHandler_(std::bind(&Tunnel::shutdownPublicConn, this, std::placeholders::_1));
+  proxyConn->setStartProxyConnRspHandler_(std::bind(&Tunnel::handleStartProxyConnRsp, this,
+                                                    std::placeholders::_1, std::placeholders::_2));
+  proxyConn->setCloseHandler_(
+      std::bind(&Tunnel::handlePeerProxyConnClose, this, std::placeholders::_1));
+  proxyConn->setCloseLocalPeerConnHandler_(
+      std::bind(&Tunnel::shutdownPublicConn, this, std::placeholders::_1));
   int publicFd = getAndPopUndealPublicFd();
   bindPublicFdToProxyConn(publicFd, proxyConn);
 };
 
 void Tunnel::bindPublicFdToProxyConn(int publicFd, SP_ProxyConn proxyConn) {
   // 封装一个新publicConn
-  SP_PublicConn publicConn(new PublicConn(publicFd, proxyConn->getThread(), this, proxyConn->getProxyID()));
+  SP_PublicConn publicConn(
+      new PublicConn(publicFd, proxyConn->getThread(), this, proxyConn->getProxyID()));
   // 绑定proxyConn和public
   proxyConn->start(publicConn);
   proxy_conn_map_.add(proxyConn->getProxyID(), proxyConn);
 };
 
 void Tunnel::shutdownFromPublic(std::string proxy_id, u_int32_t tran_count) {
-  
   bool isProxyExist;
   SP_ProxyConn proxyConn = proxy_conn_map_.get(proxy_id, isProxyExist);
   if (!isProxyExist) {
     return;
   }
-  
+
   // 这里不能直接放到free列表中，避免proxyConn再次被选中时对端可能还处于isStart=true；
   proxyConn->shutdownFromLocal();
   ctl_->shutdownFromPublic(tun_id_, proxy_id, tran_count);
@@ -91,13 +95,13 @@ void Tunnel::reqStartProxy(int public_fd, SP_ProxyConn proxy_conn) {
   StartProxyConnReqMsg req_msg;
   strcpy(req_msg.proxy_id, proxy_id.c_str());
   req_msg.public_fd = htonl(public_fd);
-  ProxyCtlMsg proxy_ctl_msg = make_proxy_ctl_msg(StartProxyConnReq, (char *)&req_msg, sizeof(StartProxyConnReqMsg));
+  ProxyCtlMsg proxy_ctl_msg =
+      make_proxy_ctl_msg(StartProxyConnReq, (char*)&req_msg, sizeof(StartProxyConnReqMsg));
   proxy_conn->send_msg(proxy_ctl_msg);
 }
 
 void Tunnel::handleStartProxyConnRsp(void* msg, SP_ProxyConn proxyConn) {
-  
-  StartProxyConnRspMsg *rsp_msg = (StartProxyConnRspMsg*)msg;
+  StartProxyConnRspMsg* rsp_msg = (StartProxyConnRspMsg*)msg;
   u_int32_t public_fd = ntohl(rsp_msg->public_fd);
   std::string proxy_id = proxyConn->getProxyID();
   if (!wait_for_start_proxy_conn_map_.isExist(proxy_id)) {

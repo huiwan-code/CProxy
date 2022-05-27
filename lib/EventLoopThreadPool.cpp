@@ -18,4 +18,3 @@ SP_EventLoopThread EventLoopThreadPool::pickRandThread() {
   }
   return t;
 }
-

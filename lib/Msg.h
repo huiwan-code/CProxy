@@ -1,9 +1,7 @@
 #pragma once
 #include <sys/types.h>
-#include <string>
 
 const int MAX_CTL_MSG_LEN = 2048;
-
 
 enum CtlMsgType {
   NewCtlReq,
@@ -59,5 +57,5 @@ struct FreeProxyConnReqMsg {
   char proxy_id[10];
 };
 
-CtlMsg make_ctl_msg(CtlMsgType type, char *data, size_t data_len);
+CtlMsg make_ctl_msg(CtlMsgType type, char* data, size_t data_len);
 size_t get_ctl_msg_body_size(const CtlMsg& msg);

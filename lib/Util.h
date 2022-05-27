@@ -1,11 +1,11 @@
 #pragma once
-#include <string>
+#include <sys/types.h>
 #include <memory>
 #include <mutex>
-#include <sys/types.h>
+#include <string>
 #include <unordered_map>
-#include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/spdlog.h"
 
 int socketBindListen(int port);
 // 忽略掉sigpipe，避免由此异常导致程序退出
@@ -13,18 +13,18 @@ void ignoreSigpipe();
 
 int setfdNonBlock(int);
 
-size_t readn(int fd, char *buffer, size_t size, bool& bufferEmpty);
+size_t readn(int fd, char* buffer, size_t size, bool& bufferEmpty);
 
-size_t writen(int fd, const char *buffer, size_t size);
+size_t writen(int fd, const char* buffer, size_t size);
 
-int tcp_connect(const char *host, u_int32_t server_port);
+int tcp_connect(const char* host, u_int32_t server_port);
 
 std::string rand_str(int len);
 
-void parse_host_port(char *addr, std::string& host, u_int32_t& port);
+void parse_host_port(char* addr, std::string& host, u_int32_t& port);
 typedef std::function<void()> voidFunctor;
 
-template<typename keyT, typename valueT>
+template <typename keyT, typename valueT>
 struct safe_unordered_map {
   std::mutex mutex_;
   std::unordered_map<keyT, valueT> map;
@@ -63,7 +63,5 @@ struct safe_unordered_map {
     map.emplace(key, val);
   }
 
-  bool empty() {
-    return map.empty();
-  }
+  bool empty() { return map.empty(); }
 };

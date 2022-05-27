@@ -17,17 +17,17 @@ void Channel::handleEvents() {
   if (revents_ & EPOLLERR) {
     errorHandler_();
   }
-  // 对端调用close时，本端会收到RDHUP，EPOLLRDHUP想要被触发，需要显式地在epoll_ctl调用时设置在events中，（此时本端可能还有数据可接收？）                   
+  // 对端调用close时，本端会收到RDHUP，EPOLLRDHUP想要被触发，需要显式地在epoll_ctl调用时设置在events中，（此时本端可能还有数据可接收？）
   if (revents_ & EPOLLRDHUP) {
     peerClosed_ = true;
   }
-  
+
   // 数据可读
   if (revents_ & (EPOLLIN | EPOLLPRI)) {
     readHandler_();
   }
   // 当发送缓冲区可写且对端没关闭
-  if ((revents_ & EPOLLOUT) &&  !peerClosed_) {
+  if ((revents_ & EPOLLOUT) && !peerClosed_) {
     writeHandler_();
   }
   postHandler_();

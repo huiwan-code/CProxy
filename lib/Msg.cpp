@@ -1,13 +1,7 @@
-#include <string.h>
-#include <netdb.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <utility>
-#include "Util.h"
 #include "Msg.h"
-#include <iostream>
+#include <string.h>
 
-CtlMsg make_ctl_msg(CtlMsgType type, char *data, size_t data_len) {
+CtlMsg make_ctl_msg(CtlMsgType type, char* data, size_t data_len) {
   CtlMsg msg = CtlMsg{};
   msg.type = type;
   memcpy(msg.data, data, data_len);

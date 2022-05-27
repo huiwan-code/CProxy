@@ -1,8 +1,8 @@
-#include <iostream>
 #include <string.h>
 #include <unistd.h>
-#include <stdexcept>
 #include <exception>
+#include <iostream>
+#include <stdexcept>
 
 #include "Buffer.h"
 #include "spdlog/spdlog.h"
@@ -29,7 +29,7 @@ void Buffer::ensure_insert(int insert_len) {
       // 当前容量小于1024时，取max_capacity_和doublecap中较小的一个
       newcap = doublecap <= max_capacity_ ? doublecap : max_capacity_;
     } else {
-      while(newcap < min_cap_need) {
+      while (newcap < min_cap_need) {
         newcap += newcap / 4;
         // 当newcap超过最大允许容量时，设置新容量=最大容量，并退出循环
         if (newcap > max_capacity_) {
@@ -43,15 +43,13 @@ void Buffer::ensure_insert(int insert_len) {
   return;
 }
 
-int Buffer::get_free_size() {
-  return capacity_ - get_unread_size();
-}
+int Buffer::get_free_size() { return capacity_ - get_unread_size(); }
 
 int Buffer::get_unread_size() {
   if (write_index_ >= read_index_) {
     return write_index_ - read_index_;
   }
-  return (data_size_ - read_index_) + write_index_; 
+  return (data_size_ - read_index_) + write_index_;
 }
 
 void Buffer::resize(int capacity) {
@@ -69,7 +67,7 @@ void Buffer::resize(int capacity) {
     int cur_index = (read_index_ + i) % data_size_;
     memcpy(tmp + i, data_ + cur_index, 1);
   }
-  
+
   free(data_);
   data_ = tmp;
   data_size_ = capacity + 1;
@@ -91,39 +89,38 @@ size_t Buffer::read(char *data, int expect_len) {
     cur_index = (read_index_ + i) % data_size_;
     memcpy(data + i, data_ + cur_index, 1);
   }
-  read_index_ = (cur_index + 1) % data_size_;;
+  read_index_ = (cur_index + 1) % data_size_;
+  ;
   return expect_len;
 }
 
-size_t Buffer::write_to_buffer(char *data, int expect_len) 
-try{
+size_t Buffer::write_to_buffer(char *data, int expect_len) try {
   if (expect_len <= 0) {
     return 0;
   }
   ensure_insert(expect_len);
 
   int cur_index = write_index_;
-  for(int i = 0; i < expect_len; i++) {
+  for (int i = 0; i < expect_len; i++) {
     cur_index = (write_index_ + i) % data_size_;
     memcpy(data_ + cur_index, data + i, 1);
   }
   write_index_ = (cur_index + 1) % data_size_;
   return expect_len;
-}
-catch (std::exception& e) {
+} catch (std::exception &e) {
   SPDLOG_CRITICAL("write to buffer except: {}", e.what());
   return 0;
 }
 
 size_t Buffer::write_to_sock(int fd) {
   int total_sent_num = 0;
-  while(get_unread_size() > 0) {
+  while (get_unread_size() > 0) {
     int cur_send_len = write_index_ - read_index_;
     if (read_index_ > write_index_) {
       cur_send_len = data_size_ - read_index_;
     }
     size_t writeNum = write(fd, data_ + read_index_, cur_send_len);
-    if (writeNum < 0) {
+    if (writeNum == 0) {
       if (errno == EINTR) {
         continue;
       } else {
@@ -131,7 +128,7 @@ size_t Buffer::write_to_sock(int fd) {
         break;
       }
     }
-    read_index_ = (read_index_ + writeNum)%data_size_;
+    read_index_ = (read_index_ + writeNum) % data_size_;
     total_sent_num += writeNum;
   }
   return total_sent_num;

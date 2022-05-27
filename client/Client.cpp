@@ -1,30 +1,31 @@
 #include <assert.h>
+#include <netinet/in.h>
+#include <string.h>
 #include <sys/epoll.h>
 #include <functional>
 #include <iostream>
-#include <string.h>
-#include <netinet/in.h>
 
 #include "Client.h"
-#include "lib/Util.h"
-#include "lib/EventLoop.h"
-#include "lib/EventLoopThreadPool.h"
+#include "LocalConn.h"
+#include "Tunnel.h"
 #include "lib/Channel.h"
 #include "lib/CtlConn.h"
+#include "lib/EventLoop.h"
+#include "lib/EventLoopThreadPool.h"
 #include "lib/ProxyConn.h"
-#include "Tunnel.h"
-#include "LocalConn.h"
+#include "lib/Util.h"
 #include "spdlog/spdlog.h"
 
-Client::Client(int workThreadNum, std::string proxy_server_host, u_int32_t proxy_server_port, std::string local_server_host, u_int32_t local_server_port) 
-: loop_(new EventLoop()),
-  eventLoopThreadPool_(new EventLoopThreadPool(workThreadNum)),
-  proxy_server_host_(proxy_server_host),
-  proxy_server_port_(proxy_server_port),
-  local_server_host_(local_server_host),
-  local_server_port_(local_server_port) {
-    ignoreSigpipe();
-  }
+Client::Client(int workThreadNum, std::string proxy_server_host, u_int32_t proxy_server_port,
+               std::string local_server_host, u_int32_t local_server_port)
+    : loop_(new EventLoop()),
+      eventLoopThreadPool_(new EventLoopThreadPool(workThreadNum)),
+      proxy_server_host_(proxy_server_host),
+      proxy_server_port_(proxy_server_port),
+      local_server_host_(local_server_host),
+      local_server_port_(local_server_port) {
+  ignoreSigpipe();
+}
 
 void Client::start() {
   eventLoopThreadPool_->start();
@@ -40,14 +41,17 @@ void Client::initCtlConn() {
   SP_CtlConn conn(new CtlConn(conn_fd, loop_));
   ctl_conn_ = conn;
   ctl_conn_->setNewCtlRspHandler(
-    std::bind(&Client::handleNewCtlRsp, this, std::placeholders::_1, std::placeholders::_2));
+      std::bind(&Client::handleNewCtlRsp, this, std::placeholders::_1, std::placeholders::_2));
   ctl_conn_->setCloseHandler_(std::bind(&Client::handleCtlConnClose, this, std::placeholders::_1));
-  ctl_conn_->setNewTunnelRspHandler(std::bind(&Client::handleNewTunnelRsp, this, std::placeholders::_1, std::placeholders::_2));
-  ctl_conn_->setNotifyClientNeedProxyHandler(std::bind(&Client::handleProxyNotify, this, std::placeholders::_1, std::placeholders::_2));
-  ctl_conn_->setNotifyProxyShutdownPeerConnHandler_(std::bind(&Client::handleShutdownLocalConn, this, std::placeholders::_1, std::placeholders::_2));
+  ctl_conn_->setNewTunnelRspHandler(
+      std::bind(&Client::handleNewTunnelRsp, this, std::placeholders::_1, std::placeholders::_2));
+  ctl_conn_->setNotifyClientNeedProxyHandler(
+      std::bind(&Client::handleProxyNotify, this, std::placeholders::_1, std::placeholders::_2));
+  ctl_conn_->setNotifyProxyShutdownPeerConnHandler_(std::bind(
+      &Client::handleShutdownLocalConn, this, std::placeholders::_1, std::placeholders::_2));
   loop_->addToPoller(ctl_conn_->getChannel());
 }
-void Client::handleNewCtlRsp(void* msg, SP_CtlConn conn) {
+void Client::handleNewCtlRsp(void *msg, SP_CtlConn conn) {
   NewCtlRspMsg *new_ctl_rsp_msg = (NewCtlRspMsg *)msg;
   conn->set_ctl_id(std::string(new_ctl_rsp_msg->ctl_id));
   client_id_ = std::string(new_ctl_rsp_msg->ctl_id);
@@ -59,8 +63,8 @@ void Client::handleNewTunnelRsp(void *msg, SP_CtlConn conn) {
   std::string tun_id = std::string(rsp_msg->tun_id);
   std::string local_server_host = std::string(rsp_msg->local_server_host);
   std::string proxy_server_host = std::string(rsp_msg->proxy_server_host);
-  SP_Tunnel tun(new Tunnel{tun_id, local_server_host, rsp_msg->local_server_port, 
-  proxy_server_host, rsp_msg->proxy_server_port, this, eventLoopThreadPool_});
+  SP_Tunnel tun(new Tunnel{tun_id, local_server_host, rsp_msg->local_server_port, proxy_server_host,
+                           rsp_msg->proxy_server_port, this, eventLoopThreadPool_});
   SPDLOG_INFO("tunnel addr:{}:{}", rsp_msg->proxy_server_host, rsp_msg->proxy_server_port);
   tunnel_map_.emplace(rsp_msg->tun_id, tun);
 }
@@ -84,7 +88,7 @@ void Client::reqNewTunnel() {
 
 // 处理服务端通知创建proxyConn
 void Client::handleProxyNotify(void *msg, SP_CtlConn conn) {
-  NotifyClientNeedProxyMsg *req_msg = (NotifyClientNeedProxyMsg*)msg;
+  NotifyClientNeedProxyMsg *req_msg = (NotifyClientNeedProxyMsg *)msg;
   std::string tun_id = req_msg->tun_id;
   // 检查tun_id是否存在
   if (tunnel_map_.find(tun_id) == tunnel_map_.end()) {
@@ -105,7 +109,8 @@ void Client::handleProxyNotify(void *msg, SP_CtlConn conn) {
   strcpy(meta_set_req_msg.ctl_id, client_id_.c_str());
   strcpy(meta_set_req_msg.tun_id, tun_id.c_str());
   strcpy(meta_set_req_msg.proxy_id, (proxyConn->getProxyID()).c_str());
-  ProxyCtlMsg proxy_ctl_msg = make_proxy_ctl_msg(ProxyMetaSet, (char *)&meta_set_req_msg, sizeof(meta_set_req_msg));
+  ProxyCtlMsg proxy_ctl_msg =
+      make_proxy_ctl_msg(ProxyMetaSet, (char *)&meta_set_req_msg, sizeof(meta_set_req_msg));
   if ((proxyConn->send_msg_dirct(proxy_ctl_msg)) == -1) {
     SPDLOG_CRITICAL("proxyConn {} send ProxyMetaSetMsg failed", proxyConn->getProxyID());
     return;
@@ -142,6 +147,7 @@ void Client::shutdownFromLocal(std::string tun_id, std::string proxy_id, u_int32
   req_msg.tran_count = htonl(tran_count);
   strcpy(req_msg.tun_id, tun_id.c_str());
   strcpy(req_msg.proxy_id, proxy_id.c_str());
-  CtlMsg ctl_msg = make_ctl_msg(NotifyProxyShutdownPeerConn, (char *)&req_msg, sizeof(NotifyProxyShutdownPeerConnMsg));
+  CtlMsg ctl_msg = make_ctl_msg(NotifyProxyShutdownPeerConn, (char *)&req_msg,
+                                sizeof(NotifyProxyShutdownPeerConnMsg));
   ctl_conn_->send_msg(ctl_msg);
 };

@@ -1,16 +1,16 @@
-#include <string.h>
 #include <netinet/in.h>
+#include <string.h>
 
-#include "Tunnel.h"
 #include "Client.h"
-#include "lib/Util.h"
 #include "LocalConn.h"
+#include "Tunnel.h"
 #include "lib/ProxyConn.h"
+#include "lib/Util.h"
 #include "spdlog/spdlog.h"
 
 std::string Tunnel::getValidProxyID() {
   std::string proxy_id = rand_str(5);
-  while(proxy_conn_map.isExist(proxy_id)) {
+  while (proxy_conn_map.isExist(proxy_id)) {
     proxy_id = rand_str(5);
   }
   return proxy_id;
@@ -27,10 +27,12 @@ SP_ProxyConn Tunnel::createProxyConn(u_int32_t proxy_port) {
   SP_EventLoopThread threadPicked = work_pool_->pickRandThread();
   // 封装proxyConn
   SP_ProxyConn proxyConn(new ProxyConn(proxy_conn_fd, threadPicked));
-  proxyConn->setStartProxyConnReqHandler_(std::bind(&Tunnel::handleStartProxyConnReq, this, std::placeholders::_1, std::placeholders::_2));
-  proxyConn->setCloseLocalPeerConnHandler_(std::bind(&Tunnel::shutdonwLocalConn, this, std::placeholders::_1));
+  proxyConn->setStartProxyConnReqHandler_(std::bind(&Tunnel::handleStartProxyConnReq, this,
+                                                    std::placeholders::_1, std::placeholders::_2));
+  proxyConn->setCloseLocalPeerConnHandler_(
+      std::bind(&Tunnel::shutdonwLocalConn, this, std::placeholders::_1));
   threadPicked->addConn(proxyConn);
-  
+
   std::string proxyID = getValidProxyID();
   proxyConn->setProxyID(proxyID);
   return proxyConn;
@@ -43,7 +45,8 @@ SP_LocalConn Tunnel::createLocalConn(SP_ProxyConn proxyConn) {
     return SP_LocalConn{};
   }
   // 封装localConn
-  SP_LocalConn localConn(new LocalConn(local_conn_fd, proxyConn->getThread(), this, proxyConn->getProxyID()));
+  SP_LocalConn localConn(
+      new LocalConn(local_conn_fd, proxyConn->getThread(), this, proxyConn->getProxyID()));
   return localConn;
 };
 
@@ -58,7 +61,7 @@ void Tunnel::shutdownFromLocal(std::string proxy_id, u_int32_t tran_count) {
   client_->shutdownFromLocal(tun_id_, proxy_id, tran_count);
 };
 
-void Tunnel::handleStartProxyConnReq(void* msg, SP_ProxyConn conn) {
+void Tunnel::handleStartProxyConnReq(void *msg, SP_ProxyConn conn) {
   StartProxyConnReqMsg *req_msg = (StartProxyConnReqMsg *)msg;
   std::string proxy_id = req_msg->proxy_id;
   u_int32_t public_fd = ntohl(req_msg->public_fd);
@@ -76,11 +79,12 @@ void Tunnel::handleStartProxyConnReq(void* msg, SP_ProxyConn conn) {
 
   // 创建localConn
   SP_LocalConn localConn = createLocalConn(proxyConn);
-  
+
   StartProxyConnRspMsg rsp_msg;
   strcpy(rsp_msg.proxy_id, proxy_id.c_str());
   rsp_msg.public_fd = htonl(public_fd);
-  ProxyCtlMsg ctl_msg = make_proxy_ctl_msg(StartProxyConnRsp, (char *)&rsp_msg, sizeof(StartProxyConnRspMsg));
+  ProxyCtlMsg ctl_msg =
+      make_proxy_ctl_msg(StartProxyConnRsp, (char *)&rsp_msg, sizeof(StartProxyConnRspMsg));
   if ((proxyConn->send_msg_dirct(ctl_msg)) == -1) {
     SPDLOG_CRITICAL("proxyConn {} send StartProxyConnRspMsg fail", proxy_id);
     return;

@@ -1,7 +1,7 @@
-#include <string.h>
-#include <netdb.h>
-#include <fcntl.h>
 #include "ProxyConn.h"
+#include <fcntl.h>
+#include <netdb.h>
+#include <string.h>
 #include "Util.h"
 #include "spdlog/spdlog.h"
 
@@ -9,7 +9,8 @@ void ProxyConn::handleRead() {
   if (is_start_) {
     int bs = splice(fd_, NULL, pipe_fds_[1], NULL, 2048, SPLICE_F_MOVE | SPLICE_F_NONBLOCK);
     if (bs < 0) {
-      SPDLOG_CRITICAL("proxy_id: {} -> pipe_fd: {} splice err: {}", proxy_id_, pipe_fds_[1], strerror(errno));
+      SPDLOG_CRITICAL("proxy_id: {} -> pipe_fd: {} splice err: {}", proxy_id_, pipe_fds_[1],
+                      strerror(errno));
       return;
     }
     if (bs == 0) {
@@ -18,11 +19,12 @@ void ProxyConn::handleRead() {
     }
     bs = splice(pipe_fds_[0], NULL, peer_conn_fd_, NULL, bs, SPLICE_F_MOVE | SPLICE_F_NONBLOCK);
     if (bs < 0) {
-      SPDLOG_CRITICAL("proxy_id {} pipe {} -> peer_conn_fd {} splice err: {}", proxy_id_, pipe_fds_[0], peer_conn_fd_, strerror(errno));
+      SPDLOG_CRITICAL("proxy_id {} pipe {} -> peer_conn_fd {} splice err: {}", proxy_id_,
+                      pipe_fds_[0], peer_conn_fd_, strerror(errno));
       return;
     }
     incrRecvCount(bs);
-    
+
     if (getRecvCount() == getTheoreticalTotalRecvCount()) {
       closeLocalPeerConnHandler_(shared_from_this());
     }
@@ -58,28 +60,25 @@ void ProxyConn::handleRead() {
     SPDLOG_CRITICAL("read msg body err readNum: {}; body_len: {}", readNum, body_len);
     return;
   }
-  switch(msg.type) {
-    case ProxyMetaSet:
-      {
-        ProxyMetaSetMsg proxy_meta_set_msg;
-        memcpy(&proxy_meta_set_msg, msg.data, get_proxy_ctl_msg_body_size(msg));
-        proxyMetaSetHandler_((void*)&proxy_meta_set_msg, shared_from_this());
-        break;
-      }
-    case StartProxyConnReq:
-      {
-        StartProxyConnReqMsg req_msg;
-        memcpy(&req_msg, msg.data, get_proxy_ctl_msg_body_size(msg));
-        startProxyConnReqHandler_((void*)&req_msg, shared_from_this());
-        break;
-      }
-    case StartProxyConnRsp:
-      {
-        StartProxyConnRspMsg rsp_msg;
-        memcpy(&rsp_msg, msg.data, get_proxy_ctl_msg_body_size(msg));
-        startProxyConnRspHandler_((void*)&rsp_msg, shared_from_this());
-        break;
-      }
+  switch (msg.type) {
+    case ProxyMetaSet: {
+      ProxyMetaSetMsg proxy_meta_set_msg;
+      memcpy(&proxy_meta_set_msg, msg.data, get_proxy_ctl_msg_body_size(msg));
+      proxyMetaSetHandler_((void *)&proxy_meta_set_msg, shared_from_this());
+      break;
+    }
+    case StartProxyConnReq: {
+      StartProxyConnReqMsg req_msg;
+      memcpy(&req_msg, msg.data, get_proxy_ctl_msg_body_size(msg));
+      startProxyConnReqHandler_((void *)&req_msg, shared_from_this());
+      break;
+    }
+    case StartProxyConnRsp: {
+      StartProxyConnRspMsg rsp_msg;
+      memcpy(&rsp_msg, msg.data, get_proxy_ctl_msg_body_size(msg));
+      startProxyConnRspHandler_((void *)&rsp_msg, shared_from_this());
+      break;
+    }
   }
 };
 
@@ -104,15 +103,15 @@ void ProxyConn::postHandle() {
     return;
   }
 
-  channel_->setEvents(EPOLLET | EPOLLIN  | EPOLLRDHUP);
+  channel_->setEvents(EPOLLET | EPOLLIN | EPOLLRDHUP);
   if (out_buffer_->get_unread_size() > 0) {
     channel_->addEvents(EPOLLOUT);
   }
-  
+
   loop_->updatePoller(channel_);
 };
 
-void ProxyConn::send_msg(ProxyCtlMsg& msg) {
+void ProxyConn::send_msg(ProxyCtlMsg &msg) {
   u_int32_t msg_len = msg.len;
   msg.len = htonl(msg.len);
 
@@ -125,7 +124,7 @@ void ProxyConn::send_msg(ProxyCtlMsg& msg) {
   loop_->updatePoller(channel_);
 };
 
-int ProxyConn::send_msg_dirct(ProxyCtlMsg& msg) {
+int ProxyConn::send_msg_dirct(ProxyCtlMsg &msg) {
   u_int32_t msg_len = msg.len;
   msg.len = htonl(msg.len);
   size_t writeNum = write(fd_, (char *)&msg, msg_len);
@@ -183,9 +182,6 @@ ProxyCtlMsg make_proxy_ctl_msg(ProxyCtlMsgType type, char *data, size_t data_len
   return msg;
 };
 
-size_t get_proxy_ctl_msg_body_size(const ProxyCtlMsg& msg) {
+size_t get_proxy_ctl_msg_body_size(const ProxyCtlMsg &msg) {
   return msg.len - sizeof(ProxyCtlMsgType) - sizeof(u_int32_t);
 }
-
-
-
