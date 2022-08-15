@@ -25,7 +25,7 @@ endif(CCACHE_FOUND)
 
 # include工程根目录，为了在server和client中能通过"lib/xxx"引入头文件
 include_directories(${PROJECT_SOURCE_DIR})
-
+include_directories(${PROJECT_SOURCE_DIR}/include)
 add_subdirectory(lib)
 add_subdirectory(server)
 add_subdirectory(client)
