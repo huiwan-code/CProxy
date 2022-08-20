@@ -1,11 +1,11 @@
 #pragma once
 #include <memory>
 
-#include "LocalConn.h"
-#include "lib/CtlConn.h"
-#include "lib/EventLoopThreadPool.h"
-#include "lib/ProxyConn.h"
-#include "lib/Util.h"
+#include "local_conn.h"
+#include "lib/ctl_conn.h"
+#include "lib/event_loop_thread_pool.h"
+#include "lib/proxy_conn.h"
+#include "lib/util.h"
 
 class Client;
 

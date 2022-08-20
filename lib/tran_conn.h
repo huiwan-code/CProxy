@@ -1,0 +1,95 @@
+#pragma once
+#include <unistd.h>
+
+#include "conn.h"
+#include "event_loop.h"
+#include "event_loop_thread.h"
+class TranConn : public Conn {
+ public:
+  TranConn(int fd, SP_EventLoopThread thread)
+      : Conn{fd, thread->GetLoop()},
+        thread_(thread),
+        tran_count_mutex_(),
+        recv_count_mutex_(),
+        theoretical_total_recv_count_mutex_(),
+        tran_count_(0),
+        recv_count_(0),
+        theoretical_total_recv_count_(-1) {
+    pipe(pipe_fds_);
+  }
+  ~TranConn() {
+    close(pipe_fds_[0]);
+    close(pipe_fds_[1]);
+  }
+  void setPeerConnFd(int fd) { peer_conn_fd_ = fd; }
+  SP_EventLoopThread getThread() { return thread_; }
+
+  int getRecvCount() {
+    std::unique_lock<std::mutex> lock(recv_count_mutex_);
+    return recv_count_;
+  };
+  void incrRecvCount(int addedCount) {
+    std::unique_lock<std::mutex> lock(recv_count_mutex_);
+    recv_count_ += addedCount;
+  }
+
+  void resetRecvCount() {
+    std::unique_lock<std::mutex> lock(recv_count_mutex_);
+    recv_count_ = 0;
+  }
+  int getTranCount() {
+    std::unique_lock<std::mutex> lock(tran_count_mutex_);
+    return tran_count_;
+  }
+
+  void incrTranCount(int addedCount) {
+    std::unique_lock<std::mutex> lock(tran_count_mutex_);
+    tran_count_ += addedCount;
+  }
+
+  void resetTranCount() {
+    std::unique_lock<std::mutex> lock(tran_count_mutex_);
+    tran_count_ = 0;
+  }
+  int getTheoreticalTotalRecvCount() {
+    std::unique_lock<std::mutex> lock(theoretical_total_recv_count_mutex_);
+    return theoretical_total_recv_count_;
+  }
+
+  void incrTheoreticalTotalRecvCount(u_int32_t addedCount) {
+    std::unique_lock<std::mutex> lock(theoretical_total_recv_count_mutex_);
+    if (theoretical_total_recv_count_ == -1) {
+      theoretical_total_recv_count_ = addedCount;
+    } else {
+      theoretical_total_recv_count_ += addedCount;
+    }
+  }
+
+  void resetTheoreticalTotalRecvCount() {
+    std::unique_lock<std::mutex> lock(theoretical_total_recv_count_mutex_);
+    theoretical_total_recv_count_ = -1;
+  }
+
+  void resetPipeFd() {
+    close(pipe_fds_[0]);
+    close(pipe_fds_[1]);
+    pipe(pipe_fds_);
+  }
+
+ protected:
+  // 数据流向对端的管道
+  int pipe_fds_[2];
+  int peer_conn_fd_;
+  SP_EventLoopThread thread_;
+
+  std::mutex tran_count_mutex_;
+  std::mutex recv_count_mutex_;
+  std::mutex theoretical_total_recv_count_mutex_;
+
+  int tran_count_;
+  int recv_count_;
+  // 初始化为-1，
+  int theoretical_total_recv_count_;
+};
+
+using SP_TranConn = std::shared_ptr<TranConn>;

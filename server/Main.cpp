@@ -1,8 +1,8 @@
 #include <getopt.h>
 #include <unistd.h>
 
-#include "Server.h"
-#include "lib/Util.h"
+#include "server.h"
+#include "lib/util.h"
 #include "spdlog/spdlog.h"
 
 int main(int argc, char **argv) {
@@ -16,9 +16,9 @@ int main(int argc, char **argv) {
                                          //  longopts的最后一个元素必须是全0填充，否则会报段错误
                                          {0, 0, 0, 0}};
 
-  u_int32_t ctl_port;
-  u_int32_t proxy_port;
-  int work_thread_nums;
+  u_int32_t ctl_port = 0;
+  u_int32_t proxy_port = 0;
+  int work_thread_nums = 0;
   while ((opt = getopt_long(argc, argv, "", long_options, &option_index)) != -1) {
     switch (opt) {
       case 'c':

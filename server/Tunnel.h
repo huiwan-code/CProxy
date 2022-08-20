@@ -7,12 +7,12 @@
 #include <mutex>
 #include <unordered_map>
 
-#include "PublicConn.h"
-#include "lib/Channel.h"
-#include "lib/EventLoopThread.h"
-#include "lib/EventLoopThreadPool.h"
-#include "lib/ProxyConn.h"
-#include "lib/Util.h"
+#include "public_conn.h"
+#include "lib/channel.h"
+#include "lib/event_loop_thread.h"
+#include "lib/event_loop_thread_pool.h"
+#include "lib/proxy_conn.h"
+#include "lib/util.h"
 
 class Control;
 
@@ -34,9 +34,9 @@ class Tunnel {
     listen_port_ = ntohs(listenAddr.sin_port);
     listen_addr_ = inet_ntoa(listenAddr.sin_addr);
     acceptor_ = SP_Channel(new Channel(listen_fd_));
-    acceptor_->setEvents(EPOLLIN | EPOLLET | EPOLLRDHUP);
-    acceptor_->setReadHandler(std::bind(&Tunnel::newPublicConnHandler, this));
-    listen_thread_->addChannel(acceptor_);
+    acceptor_->SetEvents(EPOLLIN | EPOLLET | EPOLLRDHUP);
+    acceptor_->SetReadHandler(std::bind(&Tunnel::newPublicConnHandler, this));
+    listen_thread_->AddChannel(acceptor_);
   };
 
   int getAndPopUndealPublicFd();

@@ -2,16 +2,17 @@
 #include <sys/epoll.h>
 #include <memory>
 #include <vector>
-#include "Channel.h"
+#include "channel.h"
+#include "event_dispatcher.h"
 
-class Epoll {
+class Epoll : public EventDispatcher {
  public:
   Epoll();
-  ~Epoll(){};
-  void epoll_add(SP_Channel);
-  void epoll_mod(SP_Channel);
-  void epoll_del(SP_Channel);
-  std::vector<SP_Channel> waitForReadyChannels();
+  virtual ~Epoll(){};
+  virtual void PollAdd(SP_Channel) override final;
+  virtual void PollMod(SP_Channel) override final;
+  virtual void PollDel(SP_Channel) override final;
+  virtual std::vector<SP_Channel> WaitForReadyChannels() override final;
   int get_fd() { return epoll_fd_; }
 
  private:

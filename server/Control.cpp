@@ -1,17 +1,17 @@
-#include "Control.h"
+#include "control.h"
 #include <string.h>
-#include "Server.h"
-#include "lib/Util.h"
+#include "server.h"
+#include "lib/util.h"
 #include "spdlog/spdlog.h"
 
 void Control::handleNewCtlReq(void *new_ctl_req_msg, SP_CtlConn conn) {
-  std::string ctl_id_str = conn->get_ctl_id();
+  std::string ctl_id_str = conn->GetCtlId();
   NewCtlRspMsg *req_msg = (NewCtlRspMsg *)malloc(sizeof(NewCtlRspMsg) + ctl_id_str.size() + 1);
   memset(req_msg->ctl_id, 0, ctl_id_str.size() + 1);
   strcpy(req_msg->ctl_id, ctl_id_str.c_str());
   CtlMsg ctl_msg =
-      make_ctl_msg(NewCtlRsp, (char *)req_msg, sizeof(NewCtlRspMsg) + ctl_id_str.size() + 1);
-  conn->send_msg(ctl_msg);
+      MakeCtlMsg(NewCtlRsp, (char *)req_msg, sizeof(NewCtlRspMsg) + ctl_id_str.size() + 1);
+  conn->SendMsg(ctl_msg);
   free(req_msg);
 };
 
@@ -32,8 +32,8 @@ void Control::handleNewTunnelReq(void *msg, SP_CtlConn conn) {
   strcpy(rsp_msg.tun_id, rand_tun_id.c_str());
   strcpy(rsp_msg.proxy_server_host, (tun->getListenAddr()).c_str());
   strcpy(rsp_msg.local_server_host, new_tunnel_req_msg->local_server_host);
-  CtlMsg ctl_msg = make_ctl_msg(NewTunnelRsp, (char *)&rsp_msg, sizeof(NewTunnelRspMsg));
-  conn_->send_msg(ctl_msg);
+  CtlMsg ctl_msg = MakeCtlMsg(NewTunnelRsp, (char *)&rsp_msg, sizeof(NewTunnelRspMsg));
+  conn_->SendMsg(ctl_msg);
 };
 
 void Control::notifyClientNeedProxy(std::string tun_id) {
@@ -41,8 +41,8 @@ void Control::notifyClientNeedProxy(std::string tun_id) {
   strcpy(req_msg.tun_id, tun_id.c_str());
   req_msg.server_proxy_port = server_->getProxyPort();
   CtlMsg ctl_msg =
-      make_ctl_msg(NotifyClientNeedProxy, (char *)&req_msg, sizeof(NotifyClientNeedProxyMsg));
-  conn_->send_msg(ctl_msg);
+      MakeCtlMsg(NotifyClientNeedProxy, (char *)&req_msg, sizeof(NotifyClientNeedProxyMsg));
+  conn_->SendMsg(ctl_msg);
 }
 
 void Control::shutdownFromPublic(std::string tun_id, std::string proxy_id, u_int32_t tran_count) {
@@ -50,9 +50,9 @@ void Control::shutdownFromPublic(std::string tun_id, std::string proxy_id, u_int
   req_msg.tran_count = htonl(tran_count);
   strcpy(req_msg.tun_id, tun_id.c_str());
   strcpy(req_msg.proxy_id, proxy_id.c_str());
-  CtlMsg ctl_msg = make_ctl_msg(NotifyProxyShutdownPeerConn, (char *)&req_msg,
+  CtlMsg ctl_msg = MakeCtlMsg(NotifyProxyShutdownPeerConn, (char *)&req_msg,
                                 sizeof(NotifyProxyShutdownPeerConnMsg));
-  conn_->send_msg(ctl_msg);
+  conn_->SendMsg(ctl_msg);
 };
 
 void Control::handleShutdownPublicConn(void *msg, SP_CtlConn conn) {

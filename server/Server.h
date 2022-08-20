@@ -5,13 +5,13 @@
 #include <mutex>
 #include <unordered_map>
 
-#include "Control.h"
-#include "Tunnel.h"
-#include "lib/CtlConn.h"
-#include "lib/EventLoop.h"
-#include "lib/EventLoopThread.h"
-#include "lib/EventLoopThreadPool.h"
-#include "lib/ProxyConn.h"
+#include "control.h"
+#include "tunnel.h"
+#include "lib/ctl_conn.h"
+#include "lib/event_loop.h"
+#include "lib/event_loop_thread.h"
+#include "lib/event_loop_thread_pool.h"
+#include "lib/proxy_conn.h"
 
 const int UnclaimedProxyMapLen = 4;
 struct UnclaimedProxyMap {
@@ -30,7 +30,6 @@ class Server : public std::enable_shared_from_this<Server> {
   UnclaimedProxyMap* getUnclaimedProxyMapByFd(int fd);
 
  private:
-  int threadNum_;
   int ctlPort_;
   int proxyPort_;
   int ctlListenFd_;

@@ -2,13 +2,13 @@
 #include <sys/types.h>
 #include <mutex>
 #include <unordered_map>
-#include "Tunnel.h"
-#include "lib/Channel.h"
-#include "lib/CtlConn.h"
-#include "lib/EventLoop.h"
-#include "lib/EventLoopThreadPool.h"
-#include "lib/ProxyConn.h"
-#include "lib/Util.h"
+#include "tunnel.h"
+#include "lib/channel.h"
+#include "lib/ctl_conn.h"
+#include "lib/event_loop.h"
+#include "lib/event_loop_thread_pool.h"
+#include "lib/proxy_conn.h"
+#include "lib/util.h"
 
 class Client : public std::enable_shared_from_this<Client> {
  public:

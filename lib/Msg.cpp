@@ -1,7 +1,7 @@
-#include "Msg.h"
+#include "msg.h"
 #include <string.h>
 
-CtlMsg make_ctl_msg(CtlMsgType type, char* data, size_t data_len) {
+CtlMsg MakeCtlMsg(CtlMsgType type, char* data, size_t data_len) {
   CtlMsg msg = CtlMsg{};
   msg.type = type;
   memcpy(msg.data, data, data_len);
@@ -9,6 +9,6 @@ CtlMsg make_ctl_msg(CtlMsgType type, char* data, size_t data_len) {
   return msg;
 }
 
-size_t get_ctl_msg_body_size(const CtlMsg& msg) {
+size_t GetCtlMsgBodySize(const CtlMsg& msg) {
   return msg.len - sizeof(CtlMsgType) - sizeof(u_int32_t);
 }
