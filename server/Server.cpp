@@ -6,13 +6,13 @@
 #include <functional>
 #include <iostream>
 
-#include "Server.h"
-#include "lib/CtlConn.h"
-#include "lib/EventLoopThread.h"
-#include "lib/EventLoopThreadPool.h"
-#include "lib/Msg.h"
-#include "lib/ProxyConn.h"
-#include "lib/Util.h"
+#include "server.h"
+#include "lib/ctl_conn.h"
+#include "lib/event_loop_thread.h"
+#include "lib/event_loop_thread_pool.h"
+#include "lib/msg.h"
+#include "lib/proxy_conn.h"
+#include "lib/util.h"
 
 const int SERVER_LISTEN_EPOLL_EVENTS = (EPOLLIN | EPOLLET | EPOLLRDHUP);
 
@@ -34,10 +34,10 @@ Server::Server(int threadNum, int ctlPort, int proxyPort)
     abort();
   }
   ctl_acceptor_ = SP_Channel(new Channel(ctlListenFd_));
-  ctl_acceptor_->setEvents(SERVER_LISTEN_EPOLL_EVENTS);
-  ctl_acceptor_->setReadHandler(std::bind(&Server::newCtlConnHandler, this));
-  ctl_acceptor_->setPostHandler(std::bind(&Server::postHandler, this));
-  loop_->addToPoller(ctl_acceptor_);
+  ctl_acceptor_->SetEvents(SERVER_LISTEN_EPOLL_EVENTS);
+  ctl_acceptor_->SetReadHandler(std::bind(&Server::newCtlConnHandler, this));
+  ctl_acceptor_->SetPostHandler(std::bind(&Server::postHandler, this));
+  loop_->AddToPoller(ctl_acceptor_);
 
   // proxy相关
   if (proxyListenFd_ < 0) {
@@ -49,10 +49,10 @@ Server::Server(int threadNum, int ctlPort, int proxyPort)
     abort();
   }
   proxy_acceptor_ = SP_Channel(new Channel(proxyListenFd_));
-  proxy_acceptor_->setEvents(SERVER_LISTEN_EPOLL_EVENTS);
-  proxy_acceptor_->setReadHandler(std::bind(&Server::newProxyConnHandler, this));
-  proxy_acceptor_->setPostHandler(std::bind(&Server::postHandler, this));
-  loop_->addToPoller(proxy_acceptor_);
+  proxy_acceptor_->SetEvents(SERVER_LISTEN_EPOLL_EVENTS);
+  proxy_acceptor_->SetReadHandler(std::bind(&Server::newProxyConnHandler, this));
+  proxy_acceptor_->SetPostHandler(std::bind(&Server::postHandler, this));
+  loop_->AddToPoller(proxy_acceptor_);
 
   publicListenThread_ = SP_EventLoopThread(new EventLoopThread());
   eventLoopThreadPool_ = SP_EventLoopThreadPool(new EventLoopThreadPool(threadNum));
@@ -67,9 +67,9 @@ void Server::start() try {
   // 启动数据交换线程池
   eventLoopThreadPool_->start();
   // 确保public连接监听的线程启动
-  publicListenThread_->startLoop();
+  publicListenThread_->StartLoop();
   // 主epoll开始轮训
-  loop_->loop();
+  loop_->Loop();
 } catch (const std::exception &e) {
   std::cout << e.what() << std::endl;
   abort();
@@ -109,7 +109,7 @@ void Server::newProxyConnHandler() try {
     SPDLOG_INFO("proxy_accept_fd: {}; from:{}; port:{}", accept_fd, inet_ntoa(client_addr.sin_addr),
                 ntohs(client_addr.sin_port));
     // 封装ProxyConn,并选择一个工作线程处理
-    SP_EventLoopThread threadPicked = eventLoopThreadPool_->pickRandThread();
+    SP_EventLoopThread threadPicked = eventLoopThreadPool_->PickRandThread();
     SP_ProxyConn proxyConn(new ProxyConn(accept_fd, threadPicked));
     proxyConn->setProxyMetaSetHandler(
         std::bind(&Server::claimProxyConn, this, std::placeholders::_1, std::placeholders::_2));
@@ -120,15 +120,15 @@ void Server::newProxyConnHandler() try {
       std::unique_lock<std::mutex> lock(unclaimedProxyMap->mutex);
       (unclaimedProxyMap->conns).emplace(accept_fd, proxyConn);
     }
-    threadPicked->addConn(proxyConn);
+    threadPicked->AddConn(proxyConn);
   }
 } catch (const std::exception &e) {
   std::cout << "new proxy conn handler err: " << e.what() << std::endl;
 }
 
 void Server::postHandler() {
-  ctl_acceptor_->setEvents(SERVER_LISTEN_EPOLL_EVENTS);
-  loop_->updatePoller(ctl_acceptor_);
+  ctl_acceptor_->SetEvents(SERVER_LISTEN_EPOLL_EVENTS);
+  loop_->UpdateToPoller(ctl_acceptor_);
 }
 
 void Server::claimProxyConn(void *msg, SP_ProxyConn conn) {

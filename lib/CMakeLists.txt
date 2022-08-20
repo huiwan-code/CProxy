@@ -1,14 +1,14 @@
 set(lib
-    Buffer.cpp
-    EventLoopThread.cpp
-    EventLoopThreadPool.cpp
-    Util.cpp
-    EventLoop.cpp
-    Channel.cpp
-    Epoll.cpp
-    Msg.cpp
-    CtlConn.cpp
-    ProxyConn.cpp
+    buffer.cpp
+    event_loop_thread.cpp
+    event_loop_thread_pool.cpp
+    util.cpp
+    event_loop.cpp
+    channel.cpp
+    epoll.cpp
+    msg.cpp
+    ctl_conn.cpp
+    proxy_conn.cpp
 )
 
 add_library(lib ${lib})

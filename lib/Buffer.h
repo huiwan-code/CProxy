@@ -11,13 +11,13 @@ class Buffer {
   }
   ~Buffer() { free(data_); }
   size_t read(char *data, int expect_len);
-  size_t write_to_buffer(char *data, int expect_len);
-  size_t write_to_sock(int fd);
-  int get_unread_size();
+  size_t WriteToBuffer(char *data, int expect_len);
+  size_t WriteToSock(int fd);
+  int GetUnreadSize();
 
  private:
-  void ensure_insert(int insert_len);
-  int get_free_size();
+  void ensureInsert(int insert_len);
+  int getFreeSize();
   void resize(int new_size);
   int capacity_;
   int data_size_;

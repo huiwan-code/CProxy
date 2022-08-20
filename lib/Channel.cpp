@@ -1,11 +1,11 @@
-#include "Channel.h"
+#include "channel.h"
 
 #include <sys/epoll.h>
 #include "spdlog/spdlog.h"
 
 // #include "spdlog/spdlog.h"
 
-void Channel::handleEvents() {
+void Channel::HandleEvents() {
   // 将events设置为0，默认不
   events_ = 0;
   if (!revents_) return;

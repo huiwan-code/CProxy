@@ -3,12 +3,12 @@
 #include <string.h>
 #include <algorithm>
 
-#include "Control.h"
-#include "PublicConn.h"
-#include "Tunnel.h"
-#include "lib/CtlConn.h"
-#include "lib/EventLoopThread.h"
-#include "lib/ProxyConn.h"
+#include "control.h"
+#include "public_conn.h"
+#include "tunnel.h"
+#include "lib/ctl_conn.h"
+#include "lib/event_loop_thread.h"
+#include "lib/proxy_conn.h"
 
 void Tunnel::newPublicConnHandler() {
   struct sockaddr_in client_addr;
@@ -49,7 +49,7 @@ int Tunnel::getAndPopUndealPublicFd() {
 void Tunnel::claimProxyConn(SP_ProxyConn proxyConn) {
   proxyConn->setStartProxyConnRspHandler_(std::bind(&Tunnel::handleStartProxyConnRsp, this,
                                                     std::placeholders::_1, std::placeholders::_2));
-  proxyConn->setCloseHandler_(
+  proxyConn->SetCloseHandler(
       std::bind(&Tunnel::handlePeerProxyConnClose, this, std::placeholders::_1));
   proxyConn->setCloseLocalPeerConnHandler_(
       std::bind(&Tunnel::shutdownPublicConn, this, std::placeholders::_1));
@@ -97,7 +97,7 @@ void Tunnel::reqStartProxy(int public_fd, SP_ProxyConn proxy_conn) {
   req_msg.public_fd = htonl(public_fd);
   ProxyCtlMsg proxy_ctl_msg =
       make_proxy_ctl_msg(StartProxyConnReq, (char*)&req_msg, sizeof(StartProxyConnReqMsg));
-  proxy_conn->send_msg(proxy_ctl_msg);
+  proxy_conn->SendMsg(proxy_ctl_msg);
 }
 
 void Tunnel::handleStartProxyConnRsp(void* msg, SP_ProxyConn proxyConn) {

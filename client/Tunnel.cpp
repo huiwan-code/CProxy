@@ -1,11 +1,11 @@
 #include <netinet/in.h>
 #include <string.h>
 
-#include "Client.h"
-#include "LocalConn.h"
-#include "Tunnel.h"
-#include "lib/ProxyConn.h"
-#include "lib/Util.h"
+#include "client.h"
+#include "local_conn.h"
+#include "tunnel.h"
+#include "lib/proxy_conn.h"
+#include "lib/util.h"
 #include "spdlog/spdlog.h"
 
 std::string Tunnel::getValidProxyID() {
@@ -24,14 +24,14 @@ SP_ProxyConn Tunnel::createProxyConn(u_int32_t proxy_port) {
     return SP_ProxyConn{};
   }
 
-  SP_EventLoopThread threadPicked = work_pool_->pickRandThread();
+  SP_EventLoopThread threadPicked = work_pool_->PickRandThread();
   // 封装proxyConn
   SP_ProxyConn proxyConn(new ProxyConn(proxy_conn_fd, threadPicked));
   proxyConn->setStartProxyConnReqHandler_(std::bind(&Tunnel::handleStartProxyConnReq, this,
                                                     std::placeholders::_1, std::placeholders::_2));
   proxyConn->setCloseLocalPeerConnHandler_(
       std::bind(&Tunnel::shutdonwLocalConn, this, std::placeholders::_1));
-  threadPicked->addConn(proxyConn);
+  threadPicked->AddConn(proxyConn);
 
   std::string proxyID = getValidProxyID();
   proxyConn->setProxyID(proxyID);
@@ -105,7 +105,7 @@ void Tunnel::shutdonwLocalConn(SP_ProxyConn proxyConn) {
     FreeProxyConnReqMsg req_msg;
     strcpy(req_msg.tun_id, tun_id_.c_str());
     strcpy(req_msg.proxy_id, (proxyConn->getProxyID()).c_str());
-    CtlMsg ctl_msg = make_ctl_msg(FreeProxyConnReq, (char *)&req_msg, sizeof(FreeProxyConnReqMsg));
-    (client_->getCtlConn())->send_msg(ctl_msg);
+    CtlMsg ctl_msg = MakeCtlMsg(FreeProxyConnReq, (char *)&req_msg, sizeof(FreeProxyConnReqMsg));
+    (client_->getCtlConn())->SendMsg(ctl_msg);
   }
 };

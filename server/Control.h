@@ -1,8 +1,8 @@
 #pragma once
 #include <memory>
 #include <unordered_map>
-#include "Tunnel.h"
-#include "lib/CtlConn.h"
+#include "tunnel.h"
+#include "lib/ctl_conn.h"
 
 class Server;
 
@@ -12,18 +12,18 @@ class Control : public std::enable_shared_from_this<Control> {
       : ctl_conn_fd_(fd), ctl_id_(ctl_id), loop_(loop), server_(server) {
     // 封装conn
     conn_ = SP_CtlConn(new CtlConn(fd, loop_));
-    conn_->set_ctl_id(ctl_id);
+    conn_->SetCtlId(ctl_id);
     // 设置相关处理函数
-    conn_->setNewCtlReqHandler(
+    conn_->SetNewCtlReqHandler(
         std::bind(&Control::handleNewCtlReq, this, std::placeholders::_1, std::placeholders::_2));
-    conn_->setNewTunnelReqHandler(std::bind(&Control::handleNewTunnelReq, this,
+    conn_->SetNewTunnelReqHandler(std::bind(&Control::handleNewTunnelReq, this,
                                             std::placeholders::_1, std::placeholders::_2));
-    conn_->setCloseHandler_(std::bind(&Control::handleCtlConnClose, this, std::placeholders::_1));
-    conn_->setNotifyProxyShutdownPeerConnHandler_(std::bind(
+    conn_->SetCloseHandler(std::bind(&Control::handleCtlConnClose, this, std::placeholders::_1));
+    conn_->SetNotifyProxyShutdownPeerConnHandler(std::bind(
         &Control::handleShutdownPublicConn, this, std::placeholders::_1, std::placeholders::_2));
-    conn_->setFreeProxyConnReqHandler_(std::bind(&Control::handleFreeProxyConnReq, this,
+    conn_->SetFreeProxyConnReqHandler(std::bind(&Control::handleFreeProxyConnReq, this,
                                                  std::placeholders::_1, std::placeholders::_2));
-    loop_->addToPoller(conn_->getChannel());
+    loop_->AddToPoller(conn_->GetChannel());
   };
   void upsertTunnel(std::string tun_id, SP_Tunnel tun) { tunnel_map_.add(tun_id, tun); };
   SP_CtlConn getCtlConn() { return conn_; }

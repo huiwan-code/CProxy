@@ -5,15 +5,15 @@
 #include <functional>
 #include <iostream>
 
-#include "Client.h"
-#include "LocalConn.h"
-#include "Tunnel.h"
-#include "lib/Channel.h"
-#include "lib/CtlConn.h"
-#include "lib/EventLoop.h"
-#include "lib/EventLoopThreadPool.h"
-#include "lib/ProxyConn.h"
-#include "lib/Util.h"
+#include "client.h"
+#include "local_conn.h"
+#include "tunnel.h"
+#include "lib/channel.h"
+#include "lib/ctl_conn.h"
+#include "lib/event_loop.h"
+#include "lib/event_loop_thread_pool.h"
+#include "lib/proxy_conn.h"
+#include "lib/util.h"
 #include "spdlog/spdlog.h"
 
 Client::Client(int workThreadNum, std::string proxy_server_host, u_int32_t proxy_server_port,
@@ -31,7 +31,7 @@ void Client::start() {
   eventLoopThreadPool_->start();
   initCtlConn();
   reqNewCtl();
-  loop_->loop();
+  loop_->Loop();
 }
 
 // 因为一个客户端只会有一个ctlConn，所以在ctlConn中的处理函数都不需要加锁处理
@@ -40,20 +40,20 @@ void Client::initCtlConn() {
   assert(conn_fd > 0);
   SP_CtlConn conn(new CtlConn(conn_fd, loop_));
   ctl_conn_ = conn;
-  ctl_conn_->setNewCtlRspHandler(
+  ctl_conn_->SetNewCtlRspHandler(
       std::bind(&Client::handleNewCtlRsp, this, std::placeholders::_1, std::placeholders::_2));
-  ctl_conn_->setCloseHandler_(std::bind(&Client::handleCtlConnClose, this, std::placeholders::_1));
-  ctl_conn_->setNewTunnelRspHandler(
+  ctl_conn_->SetCloseHandler(std::bind(&Client::handleCtlConnClose, this, std::placeholders::_1));
+  ctl_conn_->SetNewTunnelRspHandler(
       std::bind(&Client::handleNewTunnelRsp, this, std::placeholders::_1, std::placeholders::_2));
-  ctl_conn_->setNotifyClientNeedProxyHandler(
+  ctl_conn_->SetNotifyClientNeedProxyHandler(
       std::bind(&Client::handleProxyNotify, this, std::placeholders::_1, std::placeholders::_2));
-  ctl_conn_->setNotifyProxyShutdownPeerConnHandler_(std::bind(
+  ctl_conn_->SetNotifyProxyShutdownPeerConnHandler(std::bind(
       &Client::handleShutdownLocalConn, this, std::placeholders::_1, std::placeholders::_2));
-  loop_->addToPoller(ctl_conn_->getChannel());
+  loop_->AddToPoller(ctl_conn_->GetChannel());
 }
 void Client::handleNewCtlRsp(void *msg, SP_CtlConn conn) {
   NewCtlRspMsg *new_ctl_rsp_msg = (NewCtlRspMsg *)msg;
-  conn->set_ctl_id(std::string(new_ctl_rsp_msg->ctl_id));
+  conn->SetCtlId(std::string(new_ctl_rsp_msg->ctl_id));
   client_id_ = std::string(new_ctl_rsp_msg->ctl_id);
   reqNewTunnel();
 }
@@ -73,8 +73,8 @@ void Client::handleNewTunnelRsp(void *msg, SP_CtlConn conn) {
 void Client::reqNewCtl() {
   // 请求新ctl
   NewCtlReqMsg req_msg = NewCtlReqMsg{};
-  CtlMsg msg = make_ctl_msg(NewCtlReq, (char *)(&req_msg), sizeof(req_msg));
-  ctl_conn_->send_msg(msg);
+  CtlMsg msg = MakeCtlMsg(NewCtlReq, (char *)(&req_msg), sizeof(req_msg));
+  ctl_conn_->SendMsg(msg);
 };
 
 // 新建应用隧道
@@ -82,8 +82,8 @@ void Client::reqNewTunnel() {
   NewTunnelReqMsg req_msg;
   req_msg.local_server_port = local_server_port_;
   strcpy(req_msg.local_server_host, local_server_host_.c_str());
-  CtlMsg msg = make_ctl_msg(NewTunnelReq, (char *)(&req_msg), sizeof(req_msg));
-  ctl_conn_->send_msg(msg);
+  CtlMsg msg = MakeCtlMsg(NewTunnelReq, (char *)(&req_msg), sizeof(req_msg));
+  ctl_conn_->SendMsg(msg);
 }
 
 // 处理服务端通知创建proxyConn
@@ -147,7 +147,7 @@ void Client::shutdownFromLocal(std::string tun_id, std::string proxy_id, u_int32
   req_msg.tran_count = htonl(tran_count);
   strcpy(req_msg.tun_id, tun_id.c_str());
   strcpy(req_msg.proxy_id, proxy_id.c_str());
-  CtlMsg ctl_msg = make_ctl_msg(NotifyProxyShutdownPeerConn, (char *)&req_msg,
+  CtlMsg ctl_msg = MakeCtlMsg(NotifyProxyShutdownPeerConn, (char *)&req_msg,
                                 sizeof(NotifyProxyShutdownPeerConnMsg));
-  ctl_conn_->send_msg(ctl_msg);
+  ctl_conn_->SendMsg(ctl_msg);
 };

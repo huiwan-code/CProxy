@@ -4,12 +4,12 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "Buffer.h"
+#include "buffer.h"
 #include "spdlog/spdlog.h"
 const int DOUBLE_BORDER_LINE = 1024;
 
-void Buffer::ensure_insert(int insert_len) {
-  if (get_free_size() >= insert_len) {
+void Buffer::ensureInsert(int insert_len) {
+  if (getFreeSize() >= insert_len) {
     return;
   }
 
@@ -43,9 +43,9 @@ void Buffer::ensure_insert(int insert_len) {
   return;
 }
 
-int Buffer::get_free_size() { return capacity_ - get_unread_size(); }
+int Buffer::getFreeSize() { return capacity_ - GetUnreadSize(); }
 
-int Buffer::get_unread_size() {
+int Buffer::GetUnreadSize() {
   if (write_index_ >= read_index_) {
     return write_index_ - read_index_;
   }
@@ -53,7 +53,7 @@ int Buffer::get_unread_size() {
 }
 
 void Buffer::resize(int capacity) {
-  int unread_size = get_unread_size();
+  int unread_size = GetUnreadSize();
 
   if (unread_size > capacity) {
     return;
@@ -80,7 +80,7 @@ size_t Buffer::read(char *data, int expect_len) {
   if (expect_len <= 0) {
     return 0;
   }
-  if (expect_len > get_unread_size()) {
+  if (expect_len > GetUnreadSize()) {
     return -1;
   }
 
@@ -94,11 +94,11 @@ size_t Buffer::read(char *data, int expect_len) {
   return expect_len;
 }
 
-size_t Buffer::write_to_buffer(char *data, int expect_len) try {
+size_t Buffer::WriteToBuffer(char *data, int expect_len) try {
   if (expect_len <= 0) {
     return 0;
   }
-  ensure_insert(expect_len);
+  ensureInsert(expect_len);
 
   int cur_index = write_index_;
   for (int i = 0; i < expect_len; i++) {
@@ -112,9 +112,9 @@ size_t Buffer::write_to_buffer(char *data, int expect_len) try {
   return 0;
 }
 
-size_t Buffer::write_to_sock(int fd) {
+size_t Buffer::WriteToSock(int fd) {
   int total_sent_num = 0;
-  while (get_unread_size() > 0) {
+  while (GetUnreadSize() > 0) {
     int cur_send_len = write_index_ - read_index_;
     if (read_index_ > write_index_) {
       cur_send_len = data_size_ - read_index_;

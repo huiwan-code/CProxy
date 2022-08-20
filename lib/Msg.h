@@ -57,5 +57,5 @@ struct FreeProxyConnReqMsg {
   char proxy_id[10];
 };
 
-CtlMsg make_ctl_msg(CtlMsgType type, char* data, size_t data_len);
-size_t get_ctl_msg_body_size(const CtlMsg& msg);
+CtlMsg MakeCtlMsg(CtlMsgType type, char* data, size_t data_len);
+size_t GetCtlMsgBodySize(const CtlMsg& msg);
