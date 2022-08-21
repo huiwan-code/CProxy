@@ -3,7 +3,7 @@
 #include <mutex>
 
 #include "channel.h"
-#include "epoll.h"
+#include "event_dispatcher.h"
 #include "util.h"
 
 class EventLoop {
@@ -15,7 +15,7 @@ class EventLoop {
   void RemoveFromPoller(SP_Channel channel);
 
  private:
-  SP_Epoll poller_;
+  SP_EventDispatcher poller_;
 };
 
 typedef std::shared_ptr<EventLoop> SP_EventLoop;

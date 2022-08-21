@@ -11,8 +11,7 @@
 class EventLoopThread {
  public:
   EventLoopThread()
-      : loop_(new EventLoop()),
-        thread_(std::bind(&EventLoopThread::ThreadFunc, this)),
+      : thread_(std::bind(&EventLoopThread::ThreadFunc, this)),
         mutex_(),
         cond_(){};
   ~EventLoopThread();

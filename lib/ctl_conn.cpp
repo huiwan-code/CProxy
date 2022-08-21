@@ -2,6 +2,7 @@
 #include <string.h>
 #include <exception>
 #include <functional>
+#include <sys/epoll.h>
 
 #include "buffer.h"
 #include "ctl_conn.h"

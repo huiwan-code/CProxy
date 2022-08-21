@@ -17,8 +17,7 @@
 const int SERVER_LISTEN_EPOLL_EVENTS = (EPOLLIN | EPOLLET | EPOLLRDHUP);
 
 Server::Server(int threadNum, int ctlPort, int proxyPort)
-    : threadNum_(threadNum),
-      ctlPort_(ctlPort),
+    : ctlPort_(ctlPort),
       proxyPort_(proxyPort),
       ctlListenFd_(socketBindListen(ctlPort_)),
       proxyListenFd_(socketBindListen(proxyPort_)),

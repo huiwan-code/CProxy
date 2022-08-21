@@ -30,7 +30,6 @@ class Server : public std::enable_shared_from_this<Server> {
   UnclaimedProxyMap* getUnclaimedProxyMapByFd(int fd);
 
  private:
-  int threadNum_;
   int ctlPort_;
   int proxyPort_;
   int ctlListenFd_;

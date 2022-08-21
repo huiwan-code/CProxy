@@ -8,7 +8,7 @@
 class Epoll : public EventDispatcher {
  public:
   Epoll();
-  ~Epoll(){};
+  virtual ~Epoll(){};
   virtual void PollAdd(SP_Channel) override final;
   virtual void PollMod(SP_Channel) override final;
   virtual void PollDel(SP_Channel) override final;

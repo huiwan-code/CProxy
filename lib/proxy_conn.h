@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <mutex>
+#include <sys/epoll.h>
 #include "buffer.h"
 #include "conn.h"
 #include "event_loop.h"

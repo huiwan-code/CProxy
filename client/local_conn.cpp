@@ -1,6 +1,7 @@
 #include "local_conn.h"
 #include <fcntl.h>
 #include <string.h>
+#include <sys/epoll.h>
 #include "tunnel.h"
 #include "lib/util.h"
 

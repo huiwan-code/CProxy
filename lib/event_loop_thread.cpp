@@ -13,10 +13,10 @@ EventLoopThread::~EventLoopThread() {
   }
 }
 void EventLoopThread::ThreadFunc() try {
-  if (!loop_) {
-    throw "loop_ is null";
+  if (loop_) {
+    throw "loop_ is not null";
   }
-
+  loop_ = SP_EventLoop(new EventLoop());
   {
     std::unique_lock<std::mutex> lock(mutex_);
     started_ = true;

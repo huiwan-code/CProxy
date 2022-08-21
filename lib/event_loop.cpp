@@ -7,7 +7,7 @@
 #include <mutex>
 #include <vector>
 
-EventLoop::EventLoop() : poller_(new Epoll()){};
+EventLoop::EventLoop() : poller_(SP_Epoll(new Epoll())){};
 
 void EventLoop::AddToPoller(SP_Channel channel) { poller_->PollAdd(channel); }
 

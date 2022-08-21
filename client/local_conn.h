@@ -3,6 +3,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 #include <memory>
+#include <sys/epoll.h>
 #include "lib/event_loop.h"
 #include "lib/event_loop_thread.h"
 #include "lib/tran_conn.h"

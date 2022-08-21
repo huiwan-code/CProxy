@@ -2,6 +2,8 @@
 #include <fcntl.h>
 #include <netdb.h>
 #include <string.h>
+#include <sys/epoll.h>
+
 #include "util.h"
 #include "spdlog/spdlog.h"
 
